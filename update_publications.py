@@ -22,6 +22,11 @@ except ImportError:
     print("Missing dependencies. Install them with: pip install -r requirements.txt")
     sys.exit(1)
 
+try:
+    from sync_journal_logos import sync_logos
+except ImportError:
+    sync_logos = None
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
                   "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
@@ -42,17 +47,56 @@ JOURNAL_LOOKUP = {
     "acs catal": "https://pubs.acs.org/journal/accacs",
     "j. am. chem. soc.": "https://pubs.acs.org/journal/jacsat",
     "jacs": "https://pubs.acs.org/journal/jacsat",
+    "journal of the american chemical society": "https://pubs.acs.org/journal/jacsat",
     "j. chem. phys.": "https://aip.scitation.org/journal/jcp",
     "j. chem. theory comput.": "https://pubs.acs.org/journal/jctcce",
+    "journal of chemical theory and computation": "https://pubs.acs.org/journal/jctcce",
     "chem. sci.": "https://www.rsc.org/journals-books-databases/about-journals/chem-sci/",
+    "chemical science": "https://www.rsc.org/journals-books-databases/about-journals/chem-sci/",
     "anengw. chem. int. ed.": "https://onlinelibrary.wiley.com/journal/15213773",
     "chem": "https://pubs.acs.org",
     "proc natl acad sci": "https://www.pnas.org",
+    "proceedings of the national academy of sciences": "https://www.pnas.org",
     "j. phys. chem. b": "https://pubs.acs.org/journal/jpcbfk",
     "j. phys. chem. lett.": "https://pubs.acs.org/journal/jpclcd",
     "j. phys. chem. a": "https://pubs.acs.org/journal/jpcafh",
     "chem. comm.": "https://www.rsc.org/journals-books-databases/about-journals/chemcomm/",
+    "chemical reviews": "https://pubs.acs.org/journal/chreay",
+    "journal of chemical information and modeling": "https://pubs.acs.org/journal/jcisd8",
 }
+
+JOURNAL_BADGE_TEXT = {
+    "nature": "Nature",
+    "science": "Science",
+    "pnas": "PNAS",
+    "acs catal": "ACS Catal.",
+    "j. am. chem. soc.": "JACS",
+    "jacs": "JACS",
+    "journal of the american chemical society": "JACS",
+    "j. chem. phys.": "JCP",
+    "j. chem. theory comput.": "JCTC",
+    "journal of chemical theory and computation": "JCTC",
+    "chem. sci.": "Chemical Science",
+    "chemical science": "Chemical Science",
+    "anengw. chem. int. ed.": "Angew. Chem. Int. Ed.",
+    "proc natl acad sci": "PNAS",
+    "proceedings of the national academy of sciences": "PNAS",
+    "j. phys. chem. b": "J. Phys. Chem. B",
+    "j. phys. chem. lett.": "J. Phys. Chem. Lett.",
+    "j. phys. chem. a": "J. Phys. Chem. A",
+    "chem. comm.": "Chem. Commun.",
+    "chemical reviews": "Chem. Rev.",
+    "journal of chemical information and modeling": "J. Chem. Inf. Model.",
+}
+
+JOURNAL_LOGO_DIR = "journal-logos"
+
+SUPPORTED_LOGO_EXTENSIONS = [".svg", ".png", ".jpg", ".jpeg", ".webp"]
+
+
+def normalize_logo_filename(name):
+    cleaned = re.sub(r"[^\w\s-]", "", name or "").strip().lower()
+    return re.sub(r"[\s_]+", "-", cleaned)
 
 
 def parse_args():
@@ -74,14 +118,19 @@ def clean_text(text):
     return " ".join(text.split()).strip()
 
 
-def guess_journal_link(venue_text):
+def _match_journal_value(venue_text, lookup_dict):
     if not venue_text:
         return None
     lower = venue_text.lower()
-    for key, link in JOURNAL_LOOKUP.items():
+    sorted_keys = sorted(lookup_dict.keys(), key=len, reverse=True)
+    for key in sorted_keys:
         if key in lower:
-            return link
+            return lookup_dict[key]
     return None
+
+
+def guess_journal_link(venue_text):
+    return _match_journal_value(venue_text, JOURNAL_LOOKUP)
 
 
 def fetch_public_link(citation_url):
@@ -115,6 +164,10 @@ def format_authors(authors):
     if not authors:
         return authors
     return authors.replace(AUTHOR_NAME, f'<span class="author-name">{AUTHOR_NAME}</span>')
+
+
+def get_journal_badge_text(venue_text):
+    return _match_journal_value(venue_text, JOURNAL_BADGE_TEXT)
 
 
 def parse_year(pub):
@@ -186,11 +239,11 @@ def render_pub_item(pub):
     if not is_archive:
         journal_href = guess_journal_link(pub["venue_line"])
         if journal_href:
-            parsed = urlparse(journal_href)
-            journal_logo_url = f"https://logo.clearbit.com/{parsed.netloc}"
+            badge_text = get_journal_badge_text(pub["venue_line"]) or clean_text(pub["venue_line"]).split(",")[0]
+            logo_key = normalize_logo_filename(badge_text)
             journal_badge_html = (
-                f'<span class="journal-badge" onclick="event.stopPropagation(); window.open(\'{journal_href}\', \'_blank\');" title="Open journal website">'
-                f'<img src="{journal_logo_url}" alt="Journal logo" loading="lazy" onerror="this.style.display=\'none\'" />'
+                f'<span class="journal-badge journal-name-badge" data-logo="{logo_key}" onclick="event.stopPropagation(); window.open(\'{journal_href}\', \'_blank\');" title="Open journal website">'
+                f'{badge_text}'
                 f'</span>'
             )
         else:
@@ -217,8 +270,11 @@ def render_pub_item(pub):
     link_target = pub.get("publication_link") or pub["direct_link"] or pub["scholar_link"]
     return (
         f'<li class="paper-card" onclick="window.open(\'{link_target}\', \'_blank\')">'
-        f'  <div class="paper-title"><span class="paper-title-text">{pub["title"]}</span> {label_html} {journal_badge_html}</div>'
-        f'  <div class="paper-meta">{meta_html}</div>'
+        f'  <div class="paper-info">'
+        f'    <div class="paper-title"><span class="paper-title-text">{pub["title"]}</span> {label_html}</div>'
+        f'    <div class="paper-meta">{meta_html}</div>'
+        f'  </div>'
+        f'  <div class="paper-logo">{journal_badge_html}</div>'
         f'</li>'
     )
 
@@ -264,7 +320,7 @@ def render_html(recent_items_html, old_items_html, scholar_id):
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />
   <title>Publications + Preprints | Pujan Ajmera</title>
   <style>
-    body {{ font-family: system-ui, sans-serif; margin: 0; padding: 2rem; max-width: 760px; line-height: 1.6; color: #111; background: #f8f9fb; }}
+    body {{ font-family: system-ui, sans-serif; margin: 0 auto; padding: 2rem; max-width: 980px; min-height: 100vh; line-height: 1.6; color: #111; background: #f8f9fb; }}
     header {{ margin-bottom: 1.5rem; }}
     nav {{ margin-bottom: 1.5rem; }}
     nav a {{ margin-right: 1rem; color: #0366d6; text-decoration: none; }}
@@ -273,18 +329,22 @@ def render_html(recent_items_html, old_items_html, scholar_id):
     h1, h2 {{ margin-top: 0; }}
     ol {{ padding-left: 1.25rem; margin: 0; }}
     li {{ margin-bottom: 0; list-style: none; }}
-    .paper-card {{ cursor: pointer; padding: 1rem; border-radius: 0.75rem; transition: background 0.16s ease; border-bottom: 1px solid rgba(0,0,0,0.08); }}
+    .paper-card {{ cursor: pointer; padding: 1rem; border-radius: 0.75rem; transition: background 0.16s ease; border-bottom: 1px solid rgba(0,0,0,0.08); display: grid; grid-template-columns: minmax(0, 1fr) 140px; gap: 1rem; align-items: center; min-height: 110px; }}
     .paper-card:last-child {{ border-bottom: none; }}
     .paper-card:hover {{ background: rgba(0,0,0,0.04); }}
-    .paper-title {{ display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.35rem; }}
-    .paper-title-text {{ color: #111; font-weight: 600; text-decoration: none; }}
+    .paper-info {{ min-width: 0; display: flex; flex-direction: column; gap: 0.25rem; }}
+    .paper-title {{ display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.35rem; flex-wrap: wrap; }}
+    .paper-title-text {{ color: #111; font-weight: 600; text-decoration: none; min-width: 0; }}
+    .paper-logo {{ display: flex; align-items: center; justify-content: center; min-width: 0; align-self: center; }}
+    .paper-logo .journal-logo-badge, .paper-logo .journal-badge.text-badge {{ height: auto; width: auto; display: inline-flex; align-items: center; justify-content: center; }}
     .paper-title a {{ color: #111; font-weight: 600; text-decoration: none; }}
     .paper-title span {{ color: #111; font-weight: 600; text-decoration: none; }}
     .author-name {{ font-weight: 600; color: #111; }}
     .paper-meta {{ color: #444; font-size: 0.95rem; }}
     .label.arxiv {{ background:#bb0000; color:#fff; padding:0.18rem 0.45rem; border-radius:999px; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em; }}
-    .journal-badge {{ display:inline-flex; align-items:center; margin-left:0.35rem; }}
-    .journal-badge img {{ width: 32px; height: 32px; object-fit: contain; border-radius: 6px; box-shadow: 0 0 0 1px rgba(0,0,0,0.08); }}
+    .journal-badge {{ display:inline-flex; align-items:center; }}
+    .journal-badge img {{ height: 36px; width: auto; object-fit: contain; border-radius: 6px; box-shadow: 0 0 0 1px rgba(0,0,0,0.08); }}
+    .journal-name-badge {{ padding:0.35rem 0.75rem; border-radius:0.7rem; background:#102a5c; color:#fff; font-size:0.95rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); }}
     .journal-badge.text-badge {{ display:inline-flex; align-items:center; background:#eef4ff; color:#0638a6; padding:0.25rem 0.5rem; border-radius:0.6rem; font-size:0.85rem; }}
     .venue-link {{ color: inherit; text-decoration: none; }}
     .venue-link:hover {{ text-decoration: none; }}
@@ -294,11 +354,11 @@ def render_html(recent_items_html, old_items_html, scholar_id):
 <body>
   <header>
     <h1>Publications + Preprints</h1>
-    <p>Updated from Google Scholar profile <strong>{scholar_id}</strong> on {updated}.</p>
   </header>
   <nav>
     <a href=\"index.html\">Home</a>
     <a href=\"publications.html\">Publications</a>
+    <a href=\"repos.html\">Repositories</a>
   </nav>
   {recent_section}
   {old_section}
@@ -322,6 +382,11 @@ def main():
     out_path = Path(args.output)
     out_path.write_text(output_html, encoding="utf-8")
     print(f"Updated {out_path} with {len(publications)} publications.")
+
+    if sync_logos is not None:
+        sync_logos(out_path, Path(JOURNAL_LOGO_DIR))
+    else:
+        print("Warning: sync_journal_logos.py not available, skipping logo sync.")
 
 
 if __name__ == "__main__":
