@@ -10,8 +10,10 @@ and writes a publications page with clickable publication cards.
 
 import argparse
 import datetime
+import random
 import re
 import sys
+import time
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
@@ -104,14 +106,43 @@ def parse_args():
     parser.add_argument("--id", required=True, help="Google Scholar user ID")
     parser.add_argument("--count", type=int, default=25, help="Number of publications to fetch")
     parser.add_argument("--output", default="publications.html", help="Output HTML filename")
+    parser.add_argument("--cache-file", default="scholar-profile.html", help="Local cache file for Google Scholar profile HTML")
+    parser.add_argument("--cache-only", action="store_true", help="Skip fetching and parse from the local scholar profile cache")
     return parser.parse_args()
 
 
-def fetch_profile_page(scholar_id, count):
+def fetch_profile_page(scholar_id, count, cache_file=None):
     url = f"https://scholar.google.com/citations?user={scholar_id}&hl=en&pagesize={count}"
-    response = requests.get(url, headers=HEADERS, timeout=15)
-    response.raise_for_status()
-    return response.text
+    last_error = None
+    for attempt in range(1, 5):
+        try:
+            response = requests.get(url, headers=HEADERS, timeout=15)
+            response.raise_for_status()
+            html = response.text
+            if cache_file:
+                Path(cache_file).write_text(html, encoding="utf-8")
+            return html
+        except requests.exceptions.HTTPError as exc:
+            last_error = exc
+            status = exc.response.status_code if exc.response is not None else None
+            if status not in (429, 503):
+                break
+            sleep_seconds = min(10, 2 ** attempt + random.random())
+            print(f"Rate limited by Scholar (status={status}), retrying in {sleep_seconds:.1f}s...")
+            time.sleep(sleep_seconds)
+        except requests.RequestException as exc:
+            last_error = exc
+            sleep_seconds = min(10, 2 ** attempt + random.random())
+            print(f"Network error fetching Scholar page, retrying in {sleep_seconds:.1f}s...")
+            time.sleep(sleep_seconds)
+
+    if cache_file and Path(cache_file).exists():
+        print(f"Warning: fetch failed; loading cached profile from {cache_file}")
+        return Path(cache_file).read_text(encoding="utf-8")
+
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("Unable to fetch Google Scholar profile page.")
 
 
 def clean_text(text):
@@ -226,6 +257,9 @@ def find_publications(html):
         pub["year_int"] = parse_year(pub)
 
     publications.sort(key=lambda item: (item["year_int"], item["index"]), reverse=True)
+    total = len(publications)
+    for idx, pub in enumerate(publications, start=1):
+        pub["rank"] = total - idx + 1
     return publications
 
 
@@ -268,10 +302,13 @@ def render_pub_item(pub):
     meta_html = " | ".join(meta_parts)
 
     link_target = pub.get("publication_link") or pub["direct_link"] or pub["scholar_link"]
+    number_html = ""
+    if pub.get("rank") is not None:
+        number_html = f'<span class="paper-number">{pub["rank"]}</span>'
     return (
         f'<li class="paper-card" onclick="window.open(\'{link_target}\', \'_blank\')">'
         f'  <div class="paper-info">'
-        f'    <div class="paper-title"><span class="paper-title-text">{pub["title"]}</span> {label_html}</div>'
+        f'    <div class="paper-title">{number_html}<span class="paper-title-text">{pub["title"]}</span> {label_html}</div>'
         f'    <div class="paper-meta">{meta_html}</div>'
         f'  </div>'
         f'  <div class="paper-logo">{journal_badge_html}</div>'
@@ -297,7 +334,7 @@ def render_html(recent_items_html, old_items_html, scholar_id):
     updated = datetime.date.today().strftime("%B %d, %Y")
     recent_section = (
         "<section>\n"
-        "  <h2>Publications</h2>\n"
+        "  <h2>Publications from Graduate Studies</h2>\n"
         "  <ol>\n"
         f"{chr(10).join(recent_items_html)}\n"
         "  </ol>\n"
@@ -337,6 +374,8 @@ def render_html(recent_items_html, old_items_html, scholar_id):
     .paper-title-text {{ color: #111; font-weight: 600; text-decoration: none; min-width: 0; }}
     .paper-logo {{ display: flex; align-items: center; justify-content: center; min-width: 0; align-self: center; }}
     .paper-logo .journal-logo-badge, .paper-logo .journal-badge.text-badge {{ height: auto; width: auto; display: inline-flex; align-items: center; justify-content: center; }}
+    .paper-number {{ display: inline-flex; align-items: center; justify-content: flex-end; min-width: auto; height: auto; margin-right: 0; padding: 0; border-radius: 0; background: transparent; color: #0366d6; font-weight: 700; font-size: 1rem; }}
+    .paper-number::after {{ content: ". "; margin-left: 0.1rem; }}
     .paper-title a {{ color: #111; font-weight: 600; text-decoration: none; }}
     .paper-title span {{ color: #111; font-weight: 600; text-decoration: none; }}
     .author-name {{ font-weight: 600; color: #111; }}
@@ -352,14 +391,14 @@ def render_html(recent_items_html, old_items_html, scholar_id):
   </style>
 </head>
 <body>
-  <header>
-    <h1>Publications + Preprints</h1>
-  </header>
   <nav>
     <a href=\"index.html\">Home</a>
     <a href=\"publications.html\">Publications</a>
     <a href=\"repos.html\">Repositories</a>
   </nav>
+    <header>
+    <h1>Publications + Preprints</h1>
+  </header>
   {recent_section}
   {old_section}
   <footer>
@@ -371,7 +410,15 @@ def render_html(recent_items_html, old_items_html, scholar_id):
 
 def main():
     args = parse_args()
-    html = fetch_profile_page(args.id, args.count)
+    if args.cache_only:
+        cache_path = Path(args.cache_file)
+        if not cache_path.exists():
+            print(f"Cache-only mode requested but cache file does not exist: {cache_path}")
+            sys.exit(1)
+        html = cache_path.read_text(encoding="utf-8")
+    else:
+        html = fetch_profile_page(args.id, args.count, cache_file=args.cache_file)
+
     publications = find_publications(html)
     if not publications:
         print("No publications found. Check your Google Scholar ID or page visibility.")
