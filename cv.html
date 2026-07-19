@@ -82,13 +82,24 @@
       }
     }
   </style>
+  <script src="site-config.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var showCV = !window.SITE_FLAGS || window.SITE_FLAGS.showCV !== false;
+      if (!showCV) {
+        document.querySelectorAll('.cv-link').forEach(function (link) {
+          link.remove();
+        });
+      }
+    });
+  </script>
 </head>
 <body>
   <nav>
     <a href="index.html">Home</a>
     <a href="publications.html">Publications</a>
     <a href="repos.html">Repositories</a>
-    <a href="cv.html">CV</a>
+    <a class="cv-link" href="cv.html">CV</a>
   </nav>
 
   <header>
