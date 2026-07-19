@@ -334,7 +334,7 @@ def render_html(recent_items_html, old_items_html, scholar_id):
     updated = datetime.date.today().strftime("%B %d, %Y")
     recent_section = (
         "<section>\n"
-        "  <h2>Publications from Graduate Studies</h2>\n"
+        "  <h2>Publications/Preprints from graduate studies</h2>\n"
         "  <ol>\n"
         f"{chr(10).join(recent_items_html)}\n"
         "  </ol>\n"
@@ -343,7 +343,7 @@ def render_html(recent_items_html, old_items_html, scholar_id):
 
     old_section = (
         "<section>\n"
-        "  <h2>Papers before graduate studies</h2>\n"
+        "  <h2>Publications before graduate studies</h2>\n"
         "  <ol>\n"
         f"{chr(10).join(old_items_html)}\n"
         "  </ol>\n"
