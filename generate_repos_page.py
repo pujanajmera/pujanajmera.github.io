@@ -152,6 +152,7 @@ def build_html(repo_rows):
     <a href=\"index.html\">Home</a>
     <a href=\"publications.html\">Publications</a>
     <a href=\"repos.html\">Repositories</a>
+    <a href=\"cv.html\">CV</a>
   </nav>
   <header>
     <h1>GitHub Repositories</h1>

@@ -214,6 +214,19 @@ def parse_year(pub):
     return 0
 
 
+def parse_citations(row):
+    citation_tag = row.select_one("td.gsc_a_c a")
+    if not citation_tag:
+        return None
+    citation_text = clean_text(citation_tag.text)
+    if not citation_text:
+        return 0
+    try:
+        return int(citation_text.replace(",", ""))
+    except ValueError:
+        return None
+
+
 def find_publications(html):
     soup = BeautifulSoup(html, "html.parser")
     rows = soup.select("tr.gsc_a_tr")
@@ -231,6 +244,7 @@ def find_publications(html):
         venue_line = gray_lines[1] if len(gray_lines) > 1 else ""
         year_tag = row.select_one("td.gsc_a_y span")
         year = clean_text(year_tag.text) if year_tag else ""
+        citations = parse_citations(row)
 
         direct_link_tag = row.select_one(".gs_or_ggsm a")
         direct_link = None
@@ -250,6 +264,7 @@ def find_publications(html):
             "authors": authors,
             "venue_line": venue_line,
             "year": year,
+            "citations": citations,
             "year_int": 0,
         })
 
@@ -301,6 +316,15 @@ def render_pub_item(pub):
 
     meta_html = " | ".join(meta_parts)
 
+    citation_html = ""
+    if pub.get("citations") is not None:
+        citation_label = "citation" if pub["citations"] == 1 else "citations"
+        citation_html = (
+            f'<span class="citation-count" aria-label="{pub["citations"]} {citation_label}">'
+            f'Cited by {pub["citations"]}'
+            f'</span>'
+        )
+
     link_target = pub.get("publication_link") or pub["direct_link"] or pub["scholar_link"]
     number_html = ""
     if pub.get("rank") is not None:
@@ -309,7 +333,7 @@ def render_pub_item(pub):
         f'<li class="paper-card" onclick="window.open(\'{link_target}\', \'_blank\')">'
         f'  <div class="paper-info">'
         f'    <div class="paper-title">{number_html}<span class="paper-title-text">{pub["title"]}</span> {label_html}</div>'
-        f'    <div class="paper-meta">{meta_html}</div>'
+        f'    <div class="paper-meta-row"><div class="paper-meta">{meta_html}</div>{citation_html}</div>'
         f'  </div>'
         f'  <div class="paper-logo">{journal_badge_html}</div>'
         f'</li>'
@@ -370,6 +394,7 @@ def render_html(recent_items_html, old_items_html, scholar_id):
     .paper-card:last-child {{ border-bottom: none; }}
     .paper-card:hover {{ background: rgba(0,0,0,0.04); }}
     .paper-info {{ min-width: 0; display: flex; flex-direction: column; gap: 0.25rem; }}
+    .paper-meta-row {{ display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }}
     .paper-title {{ display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.35rem; flex-wrap: wrap; }}
     .paper-title-text {{ color: #111; font-weight: 600; text-decoration: none; min-width: 0; }}
     .paper-logo {{ display: flex; align-items: center; justify-content: center; min-width: 0; align-self: center; }}
@@ -380,6 +405,7 @@ def render_html(recent_items_html, old_items_html, scholar_id):
     .paper-title span {{ color: #111; font-weight: 600; text-decoration: none; }}
     .author-name {{ font-weight: 600; color: #111; }}
     .paper-meta {{ color: #444; font-size: 0.95rem; }}
+    .citation-count {{ flex: 0 0 auto; margin-right: 0.5rem; padding: 0.25rem 0.55rem; border-radius: 999px; background: #f4f8ff; color: #0f3d91; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }}
     .label.arxiv {{ background:#bb0000; color:#fff; padding:0.18rem 0.45rem; border-radius:999px; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em; }}
     .journal-badge {{ display:inline-flex; align-items:center; }}
     .journal-badge img {{ height: 36px; width: auto; object-fit: contain; border-radius: 6px; box-shadow: 0 0 0 1px rgba(0,0,0,0.08); }}
@@ -388,13 +414,26 @@ def render_html(recent_items_html, old_items_html, scholar_id):
     .venue-link {{ color: inherit; text-decoration: none; }}
     .venue-link:hover {{ text-decoration: none; }}
     footer {{ color:#666; font-size:0.95rem; }}
+    @media (max-width: 700px) {{ .paper-meta-row {{ align-items: flex-start; flex-direction: column; gap: 0.4rem; }} }}
   </style>
+    <script src="site-config.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {{
+            var showCV = !window.SITE_FLAGS || window.SITE_FLAGS.showCV !== false;
+            if (!showCV) {{
+                document.querySelectorAll('.cv-link').forEach(function (link) {{
+                    link.remove();
+                }});
+            }}
+        }});
+    </script>
 </head>
 <body>
   <nav>
     <a href=\"index.html\">Home</a>
     <a href=\"publications.html\">Publications</a>
     <a href=\"repos.html\">Repositories</a>
+        <a class=\"cv-link\" href=\"cv.html\">CV</a>
   </nav>
     <header>
     <h1>Publications + Preprints</h1>

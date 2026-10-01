@@ -1,3 +1,3 @@
 window.SITE_FLAGS = {
-  showCV: false
+  showCV: true
 };

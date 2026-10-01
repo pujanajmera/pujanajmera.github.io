@@ -25,24 +25,13 @@
     .repo-meta a:hover { text-decoration: underline; }
     .small-note { color: #555; font-size: 0.95rem; }
   </style>
-  <script src="site-config.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      var showCV = !window.SITE_FLAGS || window.SITE_FLAGS.showCV !== false;
-      if (!showCV) {
-        document.querySelectorAll('.cv-link').forEach(function (link) {
-          link.remove();
-        });
-      }
-    });
-  </script>
 </head>
 <body>
   <nav>
     <a href="index.html">Home</a>
     <a href="publications.html">Publications</a>
     <a href="repos.html">Repositories</a>
-    <a class="cv-link" href="cv.html">CV</a>
+    <a href="cv.html">CV</a>
   </nav>
   <header>
     <h1>GitHub Repositories</h1>
@@ -51,14 +40,27 @@
 
 <div class="repo-row">
   <div class="repo-left">
+    <h2 class="repo-title"><a href="https://github.com/pujanajmera/mparam" target="_blank" rel="noopener noreferrer">mparam</a></h2>
+    <p class="repo-description">Unifying set of files and protocol to parametrize AMBER metal force fields, using QM software outside of those currently supported by the MCPB.py protocol.</p>
+  </div>
+  <div class="repo-stats">
+    <div><span class="repo-stat"><strong>0</strong><span>Stars</span></span><span class="repo-stat"><strong>0</strong><span>Forks</span></span></div>
+    <div class="repo-meta">
+      <div>No language</div>
+      <div>Updated 2026-09-24</div>
+    </div>
+  </div>
+</div>
+<div class="repo-row">
+  <div class="repo-left">
     <h2 class="repo-title"><a href="https://github.com/pujanajmera/pujanajmera.github.io" target="_blank" rel="noopener noreferrer">pujanajmera.github.io</a></h2>
     <p class="repo-description">Pujan Ajmera personal website</p>
   </div>
   <div class="repo-stats">
     <div><span class="repo-stat"><strong>0</strong><span>Stars</span></span><span class="repo-stat"><strong>0</strong><span>Forks</span></span></div>
     <div class="repo-meta">
-      <div>Python, HTML</div>
-      <div>Updated 2026-05-11</div>
+      <div>Python, HTML, JavaScript</div>
+      <div>Updated 2026-07-19</div>
     </div>
   </div>
 </div>
@@ -71,7 +73,7 @@
     <div><span class="repo-stat"><strong>13</strong><span>Stars</span></span><span class="repo-stat"><strong>1</strong><span>Forks</span></span></div>
     <div class="repo-meta">
       <div>Python, Jupyter Notebook, C</div>
-      <div>Updated 2026-05-04</div>
+      <div>Updated 2026-07-11</div>
     </div>
   </div>
 </div>
