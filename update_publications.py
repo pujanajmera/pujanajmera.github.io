@@ -2,14 +2,15 @@
 """Update publications.html from a Google Scholar profile.
 
 Usage:
-    python update_publications.py --id YOUR_GOOGLE_SCHOLAR_ID
+    python update_publications.py [--id GOOGLE_SCHOLAR_ID]
 
 The script scrapes the profile page, detects archive/preprint entries,
 and writes a publications page with clickable publication cards.
 """
 
 import argparse
-import datetime
+import html
+import json
 import random
 import re
 import sys
@@ -24,10 +25,9 @@ except ImportError:
     print("Missing dependencies. Install them with: pip install -r requirements.txt")
     sys.exit(1)
 
-try:
-    from sync_journal_logos import sync_logos
-except ImportError:
-    sync_logos = None
+from sync_journal_logos import clean_text, normalize_logo_filename, sync_logos
+
+SCHOLAR_ID = "5FVbzIYAAAAJ"
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
@@ -42,68 +42,55 @@ ARXIV_KEYWORDS = {
     "researchsquare": "Research Square",
 }
 
-JOURNAL_LOOKUP = {
-    "nature": "https://www.nature.com",
-    "science": "https://www.science.org",
-    "pnas": "https://www.pnas.org",
-    "acs catal": "https://pubs.acs.org/journal/accacs",
-    "j. am. chem. soc.": "https://pubs.acs.org/journal/jacsat",
-    "jacs": "https://pubs.acs.org/journal/jacsat",
-    "journal of the american chemical society": "https://pubs.acs.org/journal/jacsat",
-    "j. chem. phys.": "https://aip.scitation.org/journal/jcp",
-    "j. chem. theory comput.": "https://pubs.acs.org/journal/jctcce",
-    "journal of chemical theory and computation": "https://pubs.acs.org/journal/jctcce",
-    "chem. sci.": "https://www.rsc.org/journals-books-databases/about-journals/chem-sci/",
-    "chemical science": "https://www.rsc.org/journals-books-databases/about-journals/chem-sci/",
-    "anengw. chem. int. ed.": "https://onlinelibrary.wiley.com/journal/15213773",
-    "chem": "https://pubs.acs.org",
-    "proc natl acad sci": "https://www.pnas.org",
-    "proceedings of the national academy of sciences": "https://www.pnas.org",
-    "j. phys. chem. b": "https://pubs.acs.org/journal/jpcbfk",
-    "j. phys. chem. lett.": "https://pubs.acs.org/journal/jpclcd",
-    "j. phys. chem. a": "https://pubs.acs.org/journal/jpcafh",
-    "chem. comm.": "https://www.rsc.org/journals-books-databases/about-journals/chemcomm/",
-    "chemical reviews": "https://pubs.acs.org/journal/chreay",
-    "journal of chemical information and modeling": "https://pubs.acs.org/journal/jcisd8",
-}
+_JACS = ("https://pubs.acs.org/journal/jacsat", "JACS")
+_JCTC = ("https://pubs.acs.org/journal/jctcce", "JCTC")
+_PNAS = ("https://www.pnas.org", "PNAS")
+_CHEM_SCI = ("https://www.rsc.org/journals-books-databases/about-journals/chem-sci/", "Chemical Science")
+_ANGEW = ("https://onlinelibrary.wiley.com/journal/15213773", "Angew. Chem. Int. Ed.")
+_JPCB = ("https://pubs.acs.org/journal/jpcbfk", "J. Phys. Chem. B")
+_JPCL = ("https://pubs.acs.org/journal/jpclcd", "J. Phys. Chem. Lett.")
+_JPCA = ("https://pubs.acs.org/journal/jpcafh", "J. Phys. Chem. A")
 
-JOURNAL_BADGE_TEXT = {
-    "nature": "Nature",
-    "science": "Science",
-    "pnas": "PNAS",
-    "acs catal": "ACS Catal.",
-    "j. am. chem. soc.": "JACS",
-    "jacs": "JACS",
-    "journal of the american chemical society": "JACS",
-    "j. chem. phys.": "JCP",
-    "j. chem. theory comput.": "JCTC",
-    "journal of chemical theory and computation": "JCTC",
-    "chem. sci.": "Chemical Science",
-    "chemical science": "Chemical Science",
-    "anengw. chem. int. ed.": "Angew. Chem. Int. Ed.",
-    "proc natl acad sci": "PNAS",
-    "proceedings of the national academy of sciences": "PNAS",
-    "j. phys. chem. b": "J. Phys. Chem. B",
-    "j. phys. chem. lett.": "J. Phys. Chem. Lett.",
-    "j. phys. chem. a": "J. Phys. Chem. A",
-    "chem. comm.": "Chem. Commun.",
-    "chemical reviews": "Chem. Rev.",
-    "journal of chemical information and modeling": "J. Chem. Inf. Model.",
+# Keys are journal names as they appear at the start of a Scholar venue line
+# (lowercase, without volume/pages/year). Matching is exact, so e.g.
+# "Nature Communications" does not match "nature".
+JOURNALS = {
+    "nature": ("https://www.nature.com", "Nature"),
+    "science": ("https://www.science.org", "Science"),
+    "pnas": _PNAS,
+    "proc natl acad sci": _PNAS,
+    "proceedings of the national academy of sciences": _PNAS,
+    "acs catal": ("https://pubs.acs.org/journal/accacs", "ACS Catal."),
+    "acs catalysis": ("https://pubs.acs.org/journal/accacs", "ACS Catal."),
+    "j. am. chem. soc.": _JACS,
+    "jacs": _JACS,
+    "journal of the american chemical society": _JACS,
+    "j. chem. phys.": ("https://aip.scitation.org/journal/jcp", "JCP"),
+    "the journal of chemical physics": ("https://aip.scitation.org/journal/jcp", "JCP"),
+    "j. chem. theory comput.": _JCTC,
+    "journal of chemical theory and computation": _JCTC,
+    "chem. sci.": _CHEM_SCI,
+    "chemical science": _CHEM_SCI,
+    "angew. chem. int. ed.": _ANGEW,
+    "angewandte chemie international edition": _ANGEW,
+    "j. phys. chem. b": _JPCB,
+    "the journal of physical chemistry b": _JPCB,
+    "j. phys. chem. lett.": _JPCL,
+    "the journal of physical chemistry letters": _JPCL,
+    "j. phys. chem. a": _JPCA,
+    "the journal of physical chemistry a": _JPCA,
+    "chem. comm.": ("https://www.rsc.org/journals-books-databases/about-journals/chemcomm/", "Chem. Commun."),
+    "chemical communications": ("https://www.rsc.org/journals-books-databases/about-journals/chemcomm/", "Chem. Commun."),
+    "chemical reviews": ("https://pubs.acs.org/journal/chreay", "Chem. Rev."),
+    "journal of chemical information and modeling": ("https://pubs.acs.org/journal/jcisd8", "J. Chem. Inf. Model."),
 }
 
 JOURNAL_LOGO_DIR = "journal-logos"
 
-SUPPORTED_LOGO_EXTENSIONS = [".svg", ".png", ".jpg", ".jpeg", ".webp"]
-
-
-def normalize_logo_filename(name):
-    cleaned = re.sub(r"[^\w\s-]", "", name or "").strip().lower()
-    return re.sub(r"[\s_]+", "-", cleaned)
-
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Update publications.html from Google Scholar.")
-    parser.add_argument("--id", required=True, help="Google Scholar user ID")
+    parser.add_argument("--id", default=SCHOLAR_ID, help=f"Google Scholar user ID (default: {SCHOLAR_ID})")
     parser.add_argument("--count", type=int, default=25, help="Number of publications to fetch")
     parser.add_argument("--output", default="publications.html", help="Output HTML filename")
     parser.add_argument("--cache-file", default="scholar-profile.html", help="Local cache file for Google Scholar profile HTML")
@@ -145,23 +132,14 @@ def fetch_profile_page(scholar_id, count, cache_file=None):
     raise RuntimeError("Unable to fetch Google Scholar profile page.")
 
 
-def clean_text(text):
-    return " ".join(text.split()).strip()
+def journal_name(venue_text):
+    """Return the journal part of a venue line, e.g. "Chemical Science 17 (22), ..." -> "Chemical Science"."""
+    return re.split(r",|\s\d", clean_text(venue_text or ""), maxsplit=1)[0].strip()
 
 
-def _match_journal_value(venue_text, lookup_dict):
-    if not venue_text:
-        return None
-    lower = venue_text.lower()
-    sorted_keys = sorted(lookup_dict.keys(), key=len, reverse=True)
-    for key in sorted_keys:
-        if key in lower:
-            return lookup_dict[key]
-    return None
-
-
-def guess_journal_link(venue_text):
-    return _match_journal_value(venue_text, JOURNAL_LOOKUP)
+def match_journal(venue_text):
+    """Return (url, badge_text) for a known journal, or None."""
+    return JOURNALS.get(journal_name(venue_text).lower())
 
 
 def fetch_public_link(citation_url):
@@ -194,11 +172,13 @@ def get_archive_label(venue_text, direct_link):
 def format_authors(authors):
     if not authors:
         return authors
-    return authors.replace(AUTHOR_NAME, f'<span class="author-name">{AUTHOR_NAME}</span>')
+    escaped_name = html.escape(AUTHOR_NAME)
+    return html.escape(authors).replace(escaped_name, f'<span class="author-name">{escaped_name}</span>')
 
 
-def get_journal_badge_text(venue_text):
-    return _match_journal_value(venue_text, JOURNAL_BADGE_TEXT)
+def js_open(url):
+    """Build an onclick-safe window.open call for an HTML attribute."""
+    return html.escape(f"window.open({json.dumps(url)}, '_blank')")
 
 
 def parse_year(pub):
@@ -279,40 +259,38 @@ def find_publications(html):
 
 
 def render_pub_item(pub):
-    link_target = pub["direct_link"] or pub["scholar_link"]
     archive_label = get_archive_label(pub["venue_line"], pub["direct_link"])
-    is_archive = archive_label is not None
     journal_href = None
     journal_badge_html = ""
 
-    if not is_archive:
-        journal_href = guess_journal_link(pub["venue_line"])
-        if journal_href:
-            badge_text = get_journal_badge_text(pub["venue_line"]) or clean_text(pub["venue_line"]).split(",")[0]
+    if archive_label is None:
+        journal = match_journal(pub["venue_line"])
+        if journal:
+            journal_href, badge_text = journal
             logo_key = normalize_logo_filename(badge_text)
             journal_badge_html = (
-                f'<span class="journal-badge journal-name-badge" data-logo="{logo_key}" onclick="event.stopPropagation(); window.open(\'{journal_href}\', \'_blank\');" title="Open journal website">'
-                f'{badge_text}'
+                f'<span class="journal-badge journal-name-badge" data-logo="{logo_key}" onclick="event.stopPropagation(); {js_open(journal_href)};" title="Open journal website">'
+                f'{html.escape(badge_text)}'
                 f'</span>'
             )
         else:
-            journal_text = pub["venue_line"].split(",")[0] if pub["venue_line"] else ""
+            journal_text = journal_name(pub["venue_line"])
             if journal_text:
-                journal_badge_html = f'<span class="journal-badge text-badge">{journal_text}</span>'
+                journal_badge_html = f'<span class="journal-badge text-badge">{html.escape(journal_text)}</span>'
 
     label_html = ""
     if archive_label:
         label_html = f'<span class="label arxiv">{archive_label}</span>'
 
-    venue_html = clean_text(pub["venue_line"])
+    venue_html = html.escape(clean_text(pub["venue_line"]))
     if journal_href and venue_html:
-        venue_html = f'<a class="venue-link" href="{journal_href}" target="_blank" rel="noopener noreferrer">{venue_html}</a>'
+        venue_html = f'<a class="venue-link" href="{html.escape(journal_href)}" target="_blank" rel="noopener noreferrer">{venue_html}</a>'
 
     meta_parts = [format_authors(pub["authors"]) ] if pub["authors"] else []
     if venue_html:
         meta_parts.append(venue_html)
     elif pub.get("year"):
-        meta_parts.append(pub["year"])
+        meta_parts.append(html.escape(pub["year"]))
 
     meta_html = " | ".join(meta_parts)
 
@@ -330,9 +308,9 @@ def render_pub_item(pub):
     if pub.get("rank") is not None:
         number_html = f'<span class="paper-number">{pub["rank"]}</span>'
     return (
-        f'<li class="paper-card" onclick="window.open(\'{link_target}\', \'_blank\')">'
+        f'<li class="paper-card" onclick="{js_open(link_target)}">'
         f'  <div class="paper-info">'
-        f'    <div class="paper-title">{number_html}<span class="paper-title-text">{pub["title"]}</span> {label_html}</div>'
+        f'    <div class="paper-title">{number_html}<span class="paper-title-text">{html.escape(pub["title"])}</span> {label_html}</div>'
         f'    <div class="paper-meta-row"><div class="paper-meta">{meta_html}</div>{citation_html}</div>'
         f'  </div>'
         f'  <div class="paper-logo">{journal_badge_html}</div>'
@@ -354,8 +332,7 @@ def build_publications_sections(publications):
     return recent_items, old_items
 
 
-def render_html(recent_items_html, old_items_html, scholar_id):
-    updated = datetime.date.today().strftime("%B %d, %Y")
+def render_html(recent_items_html, old_items_html):
     recent_section = (
         "<section>\n"
         "  <h2>Publications/Preprints from graduate studies</h2>\n"
@@ -432,8 +409,9 @@ def render_html(recent_items_html, old_items_html, scholar_id):
   <nav>
     <a href=\"index.html\">Home</a>
     <a href=\"publications.html\">Publications</a>
+    <a href=\"news.html\">News</a>
     <a href=\"repos.html\">Repositories</a>
-        <a class=\"cv-link\" href=\"cv.html\">CV</a>
+    <a class=\"cv-link\" href=\"cv.html\">CV</a>
   </nav>
     <header>
     <h1>Publications + Preprints</h1>
@@ -464,15 +442,12 @@ def main():
         sys.exit(1)
 
     recent_items, old_items = build_publications_sections(publications)
-    output_html = render_html(recent_items, old_items, args.id)
+    output_html = render_html(recent_items, old_items)
     out_path = Path(args.output)
     out_path.write_text(output_html, encoding="utf-8")
     print(f"Updated {out_path} with {len(publications)} publications.")
 
-    if sync_logos is not None:
-        sync_logos(out_path, Path(JOURNAL_LOGO_DIR))
-    else:
-        print("Warning: sync_journal_logos.py not available, skipping logo sync.")
+    sync_logos(out_path, Path(JOURNAL_LOGO_DIR))
 
 
 if __name__ == "__main__":

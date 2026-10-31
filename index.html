@@ -51,6 +51,45 @@
       color: #0366d6;
       text-decoration: none;
     }
+    .news-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .news-item {
+      display: grid;
+      grid-template-columns: 7.5rem minmax(0, 1fr);
+      gap: 1rem;
+      font-size: 0.95rem;
+      padding: 0.65rem 0;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+    .news-item:first-child {
+      padding-top: 0;
+    }
+    .news-item:last-child {
+      border-bottom: none;
+    }
+    .news-date {
+      color: #555;
+      font-size: 0.85rem;
+      font-weight: 600;
+      white-space: nowrap;
+      padding-top: 0.1rem;
+    }
+    .news-empty {
+      color: #555;
+    }
+    .news-more {
+      margin: 0.5rem 0 0;
+      font-size: 0.95rem;
+    }
+    @media (max-width: 600px) {
+      .news-item {
+        grid-template-columns: 1fr;
+        gap: 0.1rem;
+      }
+    }
   </style>
   <script src="site-config.js"></script>
   <script>
@@ -63,12 +102,15 @@
       }
     });
   </script>
+  <script src="news-data.js"></script>
+  <script src="news.js"></script>
 </head>
 <body>
 
   <nav>
     <a href="index.html">Home</a>
     <a href="publications.html">Publications</a>
+    <a href="news.html">News</a>
     <a href="repos.html">Repositories</a>
     <a class="cv-link" href="cv.html">CV</a>
   </nav>
@@ -82,6 +124,12 @@
     <h2>About</h2>
     <p>I’m a PhD candidate at UCLA in the <a href="https://alexandrova.chem.ucla.edu/" target="_blank" rel="noopener noreferrer">Alexandrova Lab</a>. My research focuses on theoretical and computational modeling of how enzymes control chemical reactions.</p>
     <p><strong>Contact:</strong> <a href="mailto:pujanajmera1@g.ucla.edu">pujanajmera1@g.ucla.edu</a></p>
+  </section>
+
+  <section>
+    <h2>News</h2>
+    <ul class="news-list" data-news data-news-limit="5"></ul>
+    <p class="news-more"><a href="news.html">All news →</a></p>
   </section>
 
   <section>

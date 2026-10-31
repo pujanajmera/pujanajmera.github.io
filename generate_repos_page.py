@@ -73,7 +73,7 @@ def fetch_readme_snippet(owner, repo_name):
     if not text:
         return None
     snippet = textwrap.shorten(text.replace("\n", " ").strip(), width=220, placeholder="...")
-    return html.escape(snippet)
+    return snippet
 
 
 def format_languages(repo_node):
@@ -146,13 +146,25 @@ def build_html(repo_rows):
     .repo-meta a:hover {{ text-decoration: underline; }}
     .small-note {{ color: #555; font-size: 0.95rem; }}
   </style>
+  <script src=\"site-config.js\"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {{
+      var showCV = !window.SITE_FLAGS || window.SITE_FLAGS.showCV !== false;
+      if (!showCV) {{
+        document.querySelectorAll('.cv-link').forEach(function (link) {{
+          link.remove();
+        }});
+      }}
+    }});
+  </script>
 </head>
 <body>
   <nav>
     <a href=\"index.html\">Home</a>
     <a href=\"publications.html\">Publications</a>
+    <a href=\"news.html\">News</a>
     <a href=\"repos.html\">Repositories</a>
-    <a href=\"cv.html\">CV</a>
+    <a class=\"cv-link\" href=\"cv.html\">CV</a>
   </nav>
   <header>
     <h1>GitHub Repositories</h1>
