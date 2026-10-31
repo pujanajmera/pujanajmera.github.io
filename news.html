@@ -4,94 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>News | Pujan Ajmera</title>
-  <style>
-    body {
-      font-family: system-ui, sans-serif;
-      margin: 0 auto;
-      padding: 2rem;
-      max-width: 980px;
-      min-height: 100vh;
-      line-height: 1.6;
-      color: #111;
-      background: #f8f9fb;
-    }
-    header {
-      margin-bottom: 1.5rem;
-    }
-    nav {
-      margin-bottom: 1.5rem;
-    }
-    nav a {
-      margin-right: 1rem;
-      color: #0366d6;
-      text-decoration: none;
-    }
-    nav a:hover {
-      text-decoration: underline;
-    }
-    section {
-      background: #fff;
-      border-radius: 10px;
-      padding: 1.5rem;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
-      margin-bottom: 1.5rem;
-    }
-    h1 {
-      margin: 0;
-      font-size: 2rem;
-    }
-    a {
-      color: #0366d6;
-      text-decoration: none;
-    }
-    .news-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-    .news-item {
-      display: grid;
-      grid-template-columns: 7.5rem minmax(0, 1fr);
-      gap: 1rem;
-      font-size: 0.95rem;
-      padding: 0.65rem 0;
-      border-bottom: 1px solid rgba(0,0,0,0.08);
-    }
-    .news-item:first-child {
-      padding-top: 0;
-    }
-    .news-item:last-child {
-      border-bottom: none;
-      padding-bottom: 0;
-    }
-    .news-date {
-      color: #555;
-      font-size: 0.85rem;
-      font-weight: 600;
-      white-space: nowrap;
-      padding-top: 0.1rem;
-    }
-    .news-empty {
-      color: #555;
-    }
-    @media (max-width: 600px) {
-      .news-item {
-        grid-template-columns: 1fr;
-        gap: 0.1rem;
-      }
-    }
-  </style>
+  <meta name="description" content="News and updates from Pujan Ajmera." />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Pujan Ajmera" />
+  <meta property="og:title" content="News | Pujan Ajmera" />
+  <meta property="og:description" content="News and updates from Pujan Ajmera." />
+  <meta property="og:url" content="https://pujanajmera.github.io/news.html" />
+  <meta property="og:image" content="https://pujanajmera.github.io/images/profile.jpg" />
+  <meta name="twitter:card" content="summary" />
+  <link rel="stylesheet" href="style.css" />
   <script src="site-config.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      var showCV = !window.SITE_FLAGS || window.SITE_FLAGS.showCV !== false;
-      if (!showCV) {
-        document.querySelectorAll('.cv-link').forEach(function (link) {
-          link.remove();
-        });
-      }
-    });
-  </script>
+  <script src="site.js"></script>
   <script src="news-data.js"></script>
   <script src="news.js"></script>
 </head>
@@ -100,9 +25,9 @@
   <nav>
     <a href="index.html">Home</a>
     <a href="publications.html">Publications</a>
-    <a href="news.html">News</a>
-    <a href="repos.html">Repositories</a>
     <a class="cv-link" href="cv.html">CV</a>
+    <a href="repos.html">Repositories</a>
+    <a href="news.html">News</a>
   </nav>
 
   <header>

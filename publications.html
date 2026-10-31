@@ -5,68 +5,34 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Publications + Preprints | Pujan Ajmera</title>
-<style>
-    body { font-family: system-ui, sans-serif; margin: 0 auto; padding: 2rem; max-width: 980px; min-height: 100vh; line-height: 1.6; color: #111; background: #f8f9fb; }
-    header { margin-bottom: 1.5rem; }
-    nav { margin-bottom: 1.5rem; }
-    nav a { margin-right: 1rem; color: #0366d6; text-decoration: none; }
-    nav a:hover { text-decoration: underline; }
-    section { background: #fff; border-radius: 10px; padding: 1.5rem; box-shadow: 0 1px 2px rgba(0,0,0,0.08); margin-bottom: 1.5rem; }
-    h1, h2 { margin-top: 0; }
-    ol { padding-left: 1.25rem; margin: 0; }
-    li { margin-bottom: 0; list-style: none; }
-    .paper-card { cursor: pointer; padding: 1rem; border-radius: 0.75rem; transition: background 0.16s ease; border-bottom: 1px solid rgba(0,0,0,0.08); display: grid; grid-template-columns: minmax(0, 1fr) 140px; gap: 1rem; align-items: center; min-height: 110px; }
-    .paper-card:last-child { border-bottom: none; }
-    .paper-card:hover { background: rgba(0,0,0,0.04); }
-    .paper-info { min-width: 0; display: flex; flex-direction: column; gap: 0.25rem; }
-    .paper-meta-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
-    .paper-title { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.35rem; flex-wrap: wrap; }
-    .paper-title-text { color: #111; font-weight: 600; text-decoration: none; min-width: 0; }
-    .paper-logo { display: flex; align-items: center; justify-content: center; min-width: 0; align-self: center; }
-    .paper-logo .journal-logo-badge, .paper-logo .journal-badge.text-badge { height: auto; width: auto; display: inline-flex; align-items: center; justify-content: center; }
-    .paper-number { display: inline-flex; align-items: center; justify-content: flex-end; min-width: auto; height: auto; margin-right: 0; padding: 0; border-radius: 0; background: transparent; color: #0366d6; font-weight: 700; font-size: 1rem; }
-    .paper-number::after { content: ". "; margin-left: 0.1rem; }
-    .paper-title a { color: #111; font-weight: 600; text-decoration: none; }
-    .paper-title span { color: #111; font-weight: 600; text-decoration: none; }
-    .author-name { font-weight: 600; color: #111; }
-    .paper-meta { color: #444; font-size: 0.95rem; }
-    .citation-count { flex: 0 0 auto; margin-right: 0.5rem; padding: 0.25rem 0.55rem; border-radius: 999px; background: #f4f8ff; color: #0f3d91; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
-    .label.arxiv { background:#bb0000; color:#fff; padding:0.18rem 0.45rem; border-radius:999px; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em; }
-    .journal-badge { display:inline-flex; align-items:center; }
-    .journal-badge img { height: 36px; width: auto; object-fit: contain; border-radius: 6px; box-shadow: 0 0 0 1px rgba(0,0,0,0.08); }
-    .journal-name-badge { padding:0.35rem 0.75rem; border-radius:0.7rem; background:#102a5c; color:#fff; font-size:0.95rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); }
-    .journal-badge.text-badge { display:inline-flex; align-items:center; background:#eef4ff; color:#0638a6; padding:0.25rem 0.5rem; border-radius:0.6rem; font-size:0.85rem; }
-    .venue-link { color: inherit; text-decoration: none; }
-    .venue-link:hover { text-decoration: none; }
-    footer { color:#666; font-size:0.95rem; }
-    @media (max-width: 700px) { .paper-meta-row { align-items: flex-start; flex-direction: column; gap: 0.4rem; } }
-  </style>
+<meta content="Publications and preprints by Pujan Ajmera." name="description"/>
+<link href="favicon.svg" rel="icon" type="image/svg+xml"/>
+<link href="images/apple-touch-icon.png" rel="apple-touch-icon"/>
+<meta content="website" property="og:type"/>
+<meta content="Pujan Ajmera" property="og:site_name"/>
+<meta content="Publications + Preprints | Pujan Ajmera" property="og:title"/>
+<meta content="Publications and preprints by Pujan Ajmera." property="og:description"/>
+<meta content="https://pujanajmera.github.io/publications.html" property="og:url"/>
+<meta content="https://pujanajmera.github.io/images/profile.jpg" property="og:image"/>
+<meta content="summary" name="twitter:card"/>
+<link href="style.css" rel="stylesheet"/>
 <script src="site-config.js"></script>
-<script>
-        document.addEventListener('DOMContentLoaded', function () {
-            var showCV = !window.SITE_FLAGS || window.SITE_FLAGS.showCV !== false;
-            if (!showCV) {
-                document.querySelectorAll('.cv-link').forEach(function (link) {
-                    link.remove();
-                });
-            }
-        });
-    </script>
+<script src="site.js"></script>
 </head>
 <body>
 <nav>
 <a href="index.html">Home</a>
 <a href="publications.html">Publications</a>
-<a href="news.html">News</a>
-<a href="repos.html">Repositories</a>
 <a class="cv-link" href="cv.html">CV</a>
+<a href="repos.html">Repositories</a>
+<a href="news.html">News</a>
 </nav>
 <header>
 <h1>Publications + Preprints</h1>
 </header>
 <section>
 <h2>Publications/Preprints from graduate studies</h2>
-<ol>
+<ol class="paper-list">
 <li class="paper-card" onclick="window.open(&quot;https://chemrxiv.org/doi/abs/10.26434/chemrxiv-2025-mhw1f&quot;, '_blank')"> <div class="paper-info"> <div class="paper-title"><span class="paper-number">10</span><span class="paper-title-text">Designing an Artificial Metalloenzyme for Re (I)-catalyzed CO2 Photoreduction</span> <span class="label arxiv">ChemRxiv</span></div> <div class="paper-meta-row"><div class="paper-meta"><span class="author-name">P Ajmera</span>, L Farley, N Minnetian, R King, H Jayasekara, S Chaturvedi, ... | ChemRxiv, 2026</div><span aria-label="0 citations" class="citation-count">Cited by 0</span></div> </div> <div class="paper-logo"></div></li>
 <li class="paper-card" onclick="window.open(&quot;https://www.biorxiv.org/content/10.64898/2026.01.28.701874.abstract&quot;, '_blank')"> <div class="paper-info"> <div class="paper-title"><span class="paper-number">9</span><span class="paper-title-text">Molecular Basis of Mitochondrial Complex I Disruption by m. 14484T&gt; C-Induced Leber Hereditary Optic Neuropathy</span> <span class="label arxiv">bioRxiv</span></div> <div class="paper-meta-row"><div class="paper-meta"><span class="author-name">P Ajmera</span>, D Guion, S Barnes, AA Sadun, AN Alexandrova | bioRxiv, 2026.01. 28.701874, 2026</div><span aria-label="1 citation" class="citation-count">Cited by 1</span></div> </div> <div class="paper-logo"></div></li>
 <li class="paper-card" onclick="window.open(&quot;https://pubs.rsc.org/sc/article-abstract/17/22/11042/1242193&quot;, '_blank')"> <div class="paper-info"> <div class="paper-title"><span class="paper-number">8</span><span class="paper-title-text">A protein-based model of carbon monoxide dehydrogenase exhibits tunable covalency across cluster oxidation and ligand-bound states</span> </div> <div class="paper-meta-row"><div class="paper-meta">LC Lewis, P Badve, IP Vaca, <span class="author-name">P Ajmera</span>, Y Lee, AN Alexandrova, KK Meier, ... | <a class="venue-link" href="https://www.rsc.org/journals-books-databases/about-journals/chem-sci/" rel="noopener noreferrer" target="_blank">Chemical Science 17 (22), 11042-11061, 2026</a></div><span aria-label="3 citations" class="citation-count">Cited by 3</span></div> </div> <div class="paper-logo"><span class="journal-badge journal-logo-badge" onclick="event.stopPropagation(); window.open(&quot;https://www.rsc.org/journals-books-databases/about-journals/chem-sci/&quot;, '_blank');" title="Open journal website"><img alt="Chemical Science logo" loading="lazy" src="journal-logos/chemical-science.jpg"/></span></div></li>
@@ -79,7 +45,7 @@
 </section>
 <section>
 <h2>Publications before graduate studies</h2>
-<ol>
+<ol class="paper-list">
 <li class="paper-card" onclick="window.open(&quot;https://pubs.acs.org/doi/abs/10.1021/acs.jcim.1c00006&quot;, '_blank')"> <div class="paper-info"> <div class="paper-title"><span class="paper-number">2</span><span class="paper-title-text">CS-annotate: a tool for using NMR chemical shifts to annotate RNA structure</span> </div> <div class="paper-meta-row"><div class="paper-meta">K Zhang, K Abdallah, <span class="author-name">P Ajmera</span>, K Finos, A Looka, J Mekhael, AT Frank | <a class="venue-link" href="https://pubs.acs.org/journal/jcisd8" rel="noopener noreferrer" target="_blank">Journal of Chemical Information and Modeling 61 (4), 1545-1549, 2021</a></div><span aria-label="6 citations" class="citation-count">Cited by 6</span></div> </div> <div class="paper-logo"><span class="journal-badge journal-logo-badge" onclick="event.stopPropagation(); window.open(&quot;https://pubs.acs.org/journal/jcisd8&quot;, '_blank');" title="Open journal website"><img alt="J. Chem. Inf. Model. logo" loading="lazy" src="journal-logos/j-chem-inf-model.png"/></span></div></li>
 <li class="paper-card" onclick="window.open(&quot;https://www.pnas.org/doi/abs/10.1073/pnas.2109026118&quot;, '_blank')"> <div class="paper-info"> <div class="paper-title"><span class="paper-number">1</span><span class="paper-title-text">Dynamic competition between a ligand and transcription factor NusA governs riboswitch-mediated transcription regulation</span> </div> <div class="paper-meta-row"><div class="paper-meta">A Chauvier, <span class="author-name">P Ajmera</span>, R Yadav, NG Walter | <a class="venue-link" href="https://www.pnas.org" rel="noopener noreferrer" target="_blank">Proceedings of the National Academy of Sciences 118 (47), e2109026118, 2021</a></div><span aria-label="47 citations" class="citation-count">Cited by 47</span></div> </div> <div class="paper-logo"><span class="journal-badge journal-logo-badge" onclick="event.stopPropagation(); window.open(&quot;https://www.pnas.org&quot;, '_blank');" title="Open journal website"><img alt="PNAS logo" loading="lazy" src="journal-logos/pnas.png"/></span></div></li>
 </ol>

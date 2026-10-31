@@ -1,0 +1,582 @@
+/* Shared styles for every page. Colors are tokens on :root so dark mode only
+   has to swap the tokens. The site is light by default; site.js sets
+   data-theme="dark" when a visitor picks dark with the nav toggle. */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap");
+
+:root {
+  color-scheme: light;
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f1f4f8;
+  --text: #16181d;
+  --text-muted: #5b6270;
+  --border: rgba(16, 24, 40, 0.09);
+  --accent: #1d5f9b;
+  --accent-soft: #e8f0f9;
+  --accent-strong: #123f6b;
+  --badge-bg: #133a63;
+  --preprint: #b42318;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.05);
+  --scroll-shadow: rgba(16, 24, 40, 0.14);
+  --radius: 12px;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f1216;
+  --surface: #171b21;
+  --surface-2: #1f242c;
+  --text: #e6e8eb;
+  --text-muted: #9aa3af;
+  --border: rgba(255, 255, 255, 0.08);
+  --accent: #7db4ec;
+  --accent-soft: #1c2b3d;
+  --accent-strong: #b9d6f5;
+  --badge-bg: #2a4a72;
+  --preprint: #e5534b;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --scroll-shadow: rgba(0, 0, 0, 0.6);
+}
+
+/* ---------- Base ---------- */
+
+body {
+  font-family: var(--font-sans);
+  margin: 0 auto;
+  padding: 2rem;
+  max-width: 980px;
+  min-height: 100vh;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  margin: 0;
+  font-size: 2.1rem;
+  line-height: 1.2;
+}
+
+h2 {
+  margin-top: 0;
+  font-size: 1.3rem;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+ul {
+  padding-left: 1.25rem;
+}
+
+header {
+  margin-bottom: 1.5rem;
+}
+
+section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 1.5rem;
+}
+
+footer {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+/* ---------- Navigation ---------- */
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1.25rem;
+  margin-bottom: 1.75rem;
+}
+
+nav a {
+  font-weight: 500;
+}
+
+nav a.active {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.4em;
+}
+
+.site-footer {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.theme-toggle {
+  margin-left: auto;
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  color: var(--text);
+}
+
+/* ---------- Home: intro + news column ---------- */
+
+.intro {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.intro-title {
+  margin: 0.35rem 0 0;
+  color: var(--text-muted);
+}
+
+.profile-links {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0;
+  margin: 0.75rem 0 0;
+}
+
+.profile-links a {
+  display: inline-grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.profile-links a:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  text-decoration: none;
+}
+
+.profile-links svg {
+  width: 1rem;
+  height: 1rem;
+  fill: currentColor;
+}
+
+.profile-photo {
+  width: 112px;
+  height: 112px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 3px var(--surface), 0 1px 6px rgba(0, 0, 0, 0.15);
+}
+
+.top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.top-main section {
+  margin-bottom: 0;
+}
+
+/* The News card is pinned to the height of the left column and scrolls inside. */
+.top-news {
+  position: relative;
+}
+
+.news-panel {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- News (home panel + news page) ---------- */
+
+.news-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.news-item {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  gap: 1rem;
+  font-size: 0.95rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.news-item:first-child {
+  padding-top: 0;
+}
+
+.news-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.news-date {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  padding-top: 0.1rem;
+}
+
+.news-empty {
+  color: var(--text-muted);
+}
+
+.news-more {
+  margin: 0.5rem 0 0;
+  font-size: 0.95rem;
+}
+
+.news-panel .news-item {
+  grid-template-columns: 1fr;
+  gap: 0.1rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding: 0.55rem 0;
+}
+
+.news-panel .news-item:last-child {
+  padding-bottom: 0.55rem;
+}
+
+.news-panel .news-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  /* Shadows at the top/bottom edge hint that there is more to scroll;
+     the surface-colored "local" covers hide them once scrolled to that end. */
+  background:
+    linear-gradient(var(--surface) 30%, transparent) top / 100% 2rem no-repeat local,
+    linear-gradient(transparent, var(--surface) 70%) bottom / 100% 2rem no-repeat local,
+    radial-gradient(farthest-side at 50% 0, var(--scroll-shadow), transparent) top / 100% 0.6rem no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, var(--scroll-shadow), transparent) bottom / 100% 0.6rem no-repeat scroll;
+}
+
+/* ---------- Publications ---------- */
+
+.paper-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.paper-card {
+  cursor: pointer;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  transition: background 0.16s ease;
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px;
+  gap: 1rem;
+  align-items: center;
+  min-height: 110px;
+}
+
+.paper-card:last-child {
+  border-bottom: none;
+}
+
+.paper-card:hover {
+  background: var(--surface-2);
+}
+
+.paper-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.paper-title {
+  margin-bottom: 0.35rem;
+}
+
+.paper-title-text {
+  font-weight: 600;
+}
+
+.paper-number {
+  color: var(--accent);
+  font-weight: 700;
+  margin-right: 0.4rem;
+}
+
+.paper-number::after {
+  content: ".";
+}
+
+.paper-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.paper-meta {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.author-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.venue-link {
+  color: inherit;
+}
+
+.venue-link:hover {
+  text-decoration: none;
+}
+
+.citation-count {
+  flex: 0 0 auto;
+  margin-right: 0.5rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.label.arxiv {
+  display: inline-block;
+  margin-left: 0.4rem;
+  vertical-align: 0.1em;
+  line-height: 1.4;
+  background: var(--preprint);
+  color: #fff;
+  padding: 0.18rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.paper-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.journal-badge {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Logos are dark-on-transparent artwork, so they always sit on white. */
+.journal-badge img {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+  padding: 2px 4px;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.journal-name-badge {
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.7rem;
+  background: var(--badge-bg);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.journal-badge.text-badge {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.6rem;
+  font-size: 0.85rem;
+}
+
+/* ---------- Repositories ---------- */
+
+.repo-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.repo-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) 0.9fr;
+  gap: 1rem;
+  padding: 1.2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  align-items: start;
+}
+
+.repo-title {
+  margin: 0 0 0.35rem 0;
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.repo-title a {
+  color: var(--text);
+}
+
+.repo-description {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.repo-stats {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: end;
+}
+
+.repo-stats > div:first-child {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.repo-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.repo-meta {
+  display: grid;
+  gap: 0.2rem;
+  justify-items: end;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* ---------- CV ---------- */
+
+.pdf-frame {
+  display: block;
+  width: 100%;
+  height: min(88vh, 1100px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+/* ---------- Narrow screens ---------- */
+
+@media (max-width: 800px) {
+  .top {
+    grid-template-columns: 1fr;
+  }
+  .news-panel {
+    position: static;
+  }
+  .news-panel .news-list {
+    overflow: visible;
+    padding-right: 0;
+    background: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .paper-meta-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .pdf-frame {
+    height: min(78vh, 900px);
+  }
+}
+
+@media (max-width: 600px) {
+  body {
+    padding: 1.25rem 1rem;
+  }
+  .profile-photo {
+    width: 80px;
+    height: 80px;
+  }
+  .news-item {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+  }
+  .paper-card {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    min-height: 0;
+  }
+  .paper-logo {
+    justify-content: flex-start;
+  }
+  .repo-row {
+    grid-template-columns: 1fr;
+  }
+  .repo-stats,
+  .repo-meta {
+    justify-items: start;
+  }
+}

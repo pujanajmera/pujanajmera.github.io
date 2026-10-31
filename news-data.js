@@ -8,6 +8,10 @@
 // which always resolves to the latest version.
 window.NEWS = [
   {
+    date: "2026-05-20",
+    text: "Honored to receive the Dissertation Year Fellowship for 2026–2027."
+  },
+  {
     date: "2026-05-06",
     text: "Launched this website!"
   },

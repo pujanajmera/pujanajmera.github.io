@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Tilted dz2 orbital: two same-phase lobes (white) and an opposite-phase torus (amber). -->
+  <rect width="64" height="64" rx="14" fill="#1d5f9b"/>
+  <g transform="rotate(-25 32 32)">
+    <!-- back half of the torus, behind the lobes -->
+    <ellipse cx="32" cy="33" rx="21" ry="7" fill="none" stroke="#f2a541" stroke-width="5"/>
+    <path d="M32 32 C24 26 19 15 23 9 C26 4 38 4 41 9 C45 15 40 26 32 32 Z" fill="#ffffff"/>
+    <path d="M32 32 C24 26 19 15 23 9 C26 4 38 4 41 9 C45 15 40 26 32 32 Z" fill="#ffffff" transform="rotate(180 32 32)"/>
+    <!-- front half of the torus, over the lobes -->
+    <path d="M11 33 A21 7 0 0 0 53 33" fill="none" stroke="#f2a541" stroke-width="5"/>
+  </g>
+</svg>

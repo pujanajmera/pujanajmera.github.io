@@ -4,46 +4,27 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GitHub Repositories | Pujan Ajmera</title>
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 0 auto; padding: 2rem; max-width: 980px; min-height: 100vh; line-height: 1.6; color: #111; background: #f8f9fb; }
-    header { margin-bottom: 1.5rem; }
-    h1 { margin: 0; font-size: 2rem; }
-    nav { margin-bottom: 1.5rem; }
-    nav a { margin-right: 1rem; color: #0366d6; text-decoration: none; }
-    nav a:hover { text-decoration: underline; }
-    .hero { background: #fff; border-radius: 10px; padding: 1.5rem; box-shadow: 0 1px 2px rgba(0,0,0,0.08); margin-bottom: 1.5rem; }
-    .repo-list { display: grid; gap: 1rem; }
-    .repo-row { display: grid; grid-template-columns: minmax(0, 1.5fr) 0.9fr; gap: 1rem; padding: 1.2rem; background: #fff; border-radius: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); align-items: start; border: 1px solid rgba(0,0,0,0.06); }
-    .repo-title { margin: 0 0 0.35rem 0; font-size: 1.05rem; font-weight: 600; }
-    .repo-title a { color: #111; text-decoration: none; }
-    .repo-title a:hover { text-decoration: underline; }
-    .repo-description { margin: 0; color: #444; font-size: 0.98rem; }
-    .repo-stat { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.35rem 0.55rem; border-radius: 999px; background: #f4f8ff; color: #0f3d91; font-size: 0.9rem; font-weight: 600; }
-    .repo-stat span { font-size: 0.95rem; }
-    .repo-meta { display: grid; gap: 0.4rem; justify-items: end; color: #555; font-size: 0.9rem; }
-    .repo-meta a { color: inherit; text-decoration: none; }
-    .repo-meta a:hover { text-decoration: underline; }
-    .small-note { color: #555; font-size: 0.95rem; }
-  </style>
+  <meta name="description" content="GitHub repositories and research software by Pujan Ajmera." />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Pujan Ajmera" />
+  <meta property="og:title" content="GitHub Repositories | Pujan Ajmera" />
+  <meta property="og:description" content="GitHub repositories and research software by Pujan Ajmera." />
+  <meta property="og:url" content="https://pujanajmera.github.io/repos.html" />
+  <meta property="og:image" content="https://pujanajmera.github.io/images/profile.jpg" />
+  <meta name="twitter:card" content="summary" />
+  <link rel="stylesheet" href="style.css" />
   <script src="site-config.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      var showCV = !window.SITE_FLAGS || window.SITE_FLAGS.showCV !== false;
-      if (!showCV) {
-        document.querySelectorAll('.cv-link').forEach(function (link) {
-          link.remove();
-        });
-      }
-    });
-  </script>
+  <script src="site.js"></script>
 </head>
 <body>
   <nav>
     <a href="index.html">Home</a>
     <a href="publications.html">Publications</a>
-    <a href="news.html">News</a>
-    <a href="repos.html">Repositories</a>
     <a class="cv-link" href="cv.html">CV</a>
+    <a href="repos.html">Repositories</a>
+    <a href="news.html">News</a>
   </nav>
   <header>
     <h1>GitHub Repositories</h1>
@@ -89,6 +70,8 @@
     </div>
   </div>
 </div>
+
+
   </div>
 </body>
 </html>
