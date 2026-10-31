@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Research | Pujan Ajmera</title>
+  <meta name="description" content="Research by Pujan Ajmera on electric fields in enzymes, electronic structure of metalloenzymes, and quantum charge transfer." />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Pujan Ajmera" />
+  <meta property="og:title" content="Research | Pujan Ajmera" />
+  <meta property="og:description" content="Research by Pujan Ajmera on electric fields in enzymes, electronic structure of metalloenzymes, and quantum charge transfer." />
+  <meta property="og:url" content="https://pujanajmera.github.io/research.html" />
+  <meta property="og:image" content="https://pujanajmera.github.io/images/profile.jpg" />
+  <meta name="twitter:card" content="summary" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="site-config.js"></script>
+  <script src="site.js"></script>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="research.html">Research</a>
+    <a href="publications.html">Publications</a>
+    <a href="software.html">Software</a>
+    <a class="cv-link" href="documents/CV.pdf" target="_blank" rel="noopener">CV</a>
+    <a href="news.html">News</a>
+  </nav>
+
+  <header class="research-header">
+    <h1>Research</h1>
+    <p class="research-lede">I use theoretical and computational chemistry to understand how enzymes control chemical reactions: the electric fields that proteins exert on their active sites, how those fields shape the electronic structure of metal centers, and how they steer the quantum dynamics of electron and proton transfer.</p>
+  </header>
+
+  <ol class="research-contents" aria-label="Research themes">
+    <li><a href="#electric-fields"><span class="research-num">I</span>Electric fields in enzymes</a></li>
+    <li><a href="#electronic-structure"><span class="research-num">II</span>Electronic structure in strongly correlated systems</a></li>
+    <li><a href="#charge-transfer"><span class="research-num">III</span>Quantum charge transfer</a></li>
+  </ol>
+
+  <!-- Each theme can show a figure: save it at the img path below and it appears.
+       Until the file exists, the figure is hidden and the text uses the full width. -->
+  <article class="research-body">
+    <section class="theme" id="electric-fields">
+      <div class="theme-num">I</div>
+      <div class="theme-main">
+        <h2>Methods for electric fields in enzymes</h2>
+        <div class="theme-content">
+          <div class="theme-text">
+            <p>Developed pycpet (<a href="https://github.com/pujanajmera/pycpet" target="_blank" rel="noopener noreferrer">GitHub</a>) to evaluate dynamics of 3D electric fields and electrostatic potentials in active sites.</p>
+            <h3>Selected papers</h3>
+            <ol class="theme-papers">
+              <li><a href="https://doi.org/10.1021/jacs.5c11931" target="_blank" rel="noopener noreferrer">Distinct Electric Fields Enable Common Catalytic Function in Structurally Diverse Enzymes</a>. <cite>J. Am. Chem. Soc.</cite>&nbsp;2025</li>
+              <li><a href="https://doi.org/10.1021/acs.jctc.5c00138" target="_blank" rel="noopener noreferrer">PyCPET: Computing Heterogeneous 3D Protein Electric Fields and Their Dynamics</a>. <cite>J. Chem. Theory Comput.</cite>&nbsp;2025</li>
+              <li><a href="https://doi.org/10.1021/acs.chemrev.4c00471" target="_blank" rel="noopener noreferrer">Methods for Theoretical Treatment of Local Fields in Proteins and Enzymes</a>. <cite>Chem. Rev.</cite>&nbsp;2025</li>
+              <li><a href="https://doi.org/10.1021/jacs.4c03914" target="_blank" rel="noopener noreferrer">Directed Evolution of Protoglobin Optimizes the Enzyme Electric Field</a>. <cite>J. Am. Chem. Soc.</cite>&nbsp;2024</li>
+            </ol>
+          </div>
+          <figure class="research-figure">
+            <img src="images/research/electric-fields.png" alt="Electric field in an enzyme active site computed with pycpet"data-optional />
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="theme" id="electronic-structure">
+      <div class="theme-num">II</div>
+      <div class="theme-main">
+        <h2>Electrostatic control of electronic structure in strongly correlated systems</h2>
+        <div class="theme-content">
+          <div class="theme-text">
+            <p>Working on interesting metalloenzymes with complex electronic structure and understanding the role of the protein environment.</p>
+            <h3>Selected papers</h3>
+            <ol class="theme-papers">
+              <li><a href="https://doi.org/10.1039/d6sc00023a" target="_blank" rel="noopener noreferrer">A protein-based model of carbon monoxide dehydrogenase exhibits tunable covalency across cluster oxidation and ligand-bound states</a>. <cite>Chem. Sci.</cite>&nbsp;2026</li>
+            </ol>
+          </div>
+          <figure class="research-figure">
+            <img src="images/research/strongly-correlated.png" alt="Metalloenzyme active site and its electronic structure"data-optional />
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="theme" id="charge-transfer">
+      <div class="theme-num">III</div>
+      <div class="theme-main">
+        <h2>Electrostatics in controlling quantum charge transfer processes</h2>
+        <div class="theme-content">
+          <div class="theme-text">
+            <p>Modelling electrostatic control of dynamic PCET and electron transfer.</p>
+          </div>
+          <figure class="research-figure">
+            <img src="images/research/charge-transfer.png" alt="Proton-coupled electron transfer in a protein"data-optional />
+          </figure>
+        </div>
+      </div>
+    </section>
+  </article>
+
+</body>
+</html>

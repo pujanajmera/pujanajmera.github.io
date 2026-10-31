@@ -1,368 +1,406 @@
 #!/usr/bin/env python3
-"""Update publications.html from a Google Scholar profile.
+"""Update publications.html from ORCID, Crossref and OpenAlex.
 
 Usage:
-    python update_publications.py [--id GOOGLE_SCHOLAR_ID]
+    python update_publications.py [--orcid ORCID_ID] [--refresh]
 
-The script scrapes the profile page, detects archive/preprint entries,
-and writes a publications page with clickable publication cards.
+ORCID supplies the list of works. The first time a work appears, its metadata (title, full
+author list, journal, volume, pages, year, BibTeX) is looked up on Crossref and saved to
+publications-data.json, keyed by DOI. Later runs render known works from that file, so the
+page stays the same even when a service is slow or down. Citation counts come from OpenAlex
+on each run and are saved too, so a failed lookup keeps the last known counts.
+
+To correct a work, edit its entry in publications-data.json and re-run; edits are kept.
+--refresh looks every work up again (overwriting edits) except entries with "pinned": true.
+A preprint is hidden once its published version is also on ORCID.
+
+All three services allow automated access, so this runs daily in GitHub Actions
+(.github/workflows/update-publications.yml).
 """
 
 import argparse
 import html
 import json
-import random
 import re
 import sys
 import time
+from itertools import groupby
 from pathlib import Path
-from urllib.parse import urljoin, urlparse
 
 try:
     import requests
-    from bs4 import BeautifulSoup
 except ImportError:
     print("Missing dependencies. Install them with: pip install -r requirements.txt")
     sys.exit(1)
 
-from sync_journal_logos import clean_text, normalize_logo_filename, sync_logos
+ORCID_ID = "0000-0001-9509-6807"
+AUTHOR_NAME = "P Ajmera"
+DATA_FILE = Path("publications-data.json")
+HEADERS = {"User-Agent": "pujanajmera.github.io publications updater"}
 
-SCHOLAR_ID = "5FVbzIYAAAAJ"
+# ORCID work types shown on the page (datasets, abstracts, etc. are left out).
+INCLUDED_TYPES = {"journal-article", "preprint", "book-chapter", "conference-paper"}
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
-                  "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+# Preprint servers by DOI prefix, for records where Crossref doesn't name the server.
+PREPRINT_PREFIXES = {
+    "10.26434": "ChemRxiv",
+    "10.1101": "bioRxiv",
+    "10.64898": "bioRxiv",
+    "10.48550": "arXiv",
+    "10.21203": "Research Square",
 }
 
-ARXIV_KEYWORDS = {
-    "arxiv": "arXiv",
-    "biorxiv": "bioRxiv",
-    "chemrxiv": "ChemRxiv",
-    "medrxiv": "medRxiv",
-    "researchsquare": "Research Square",
-}
+# Optional graphical abstracts: images/papers/<doi slug>.<ext>, where the slug is
+# the DOI with "/" replaced by "-" (e.g. 10.1021-acs.jctc.5c00138.png).
+ABSTRACT_IMAGE_DIR = Path("images/papers")
+ABSTRACT_IMAGE_EXTENSIONS = [".webp", ".png", ".jpg", ".jpeg", ".svg"]
 
-_JACS = ("https://pubs.acs.org/journal/jacsat", "JACS")
-_JCTC = ("https://pubs.acs.org/journal/jctcce", "JCTC")
-_PNAS = ("https://www.pnas.org", "PNAS")
-_CHEM_SCI = ("https://www.rsc.org/journals-books-databases/about-journals/chem-sci/", "Chemical Science")
-_ANGEW = ("https://onlinelibrary.wiley.com/journal/15213773", "Angew. Chem. Int. Ed.")
-_JPCB = ("https://pubs.acs.org/journal/jpcbfk", "J. Phys. Chem. B")
-_JPCL = ("https://pubs.acs.org/journal/jpclcd", "J. Phys. Chem. Lett.")
-_JPCA = ("https://pubs.acs.org/journal/jpcafh", "J. Phys. Chem. A")
-
-# Keys are journal names as they appear at the start of a Scholar venue line
-# (lowercase, without volume/pages/year). Matching is exact, so e.g.
-# "Nature Communications" does not match "nature".
-JOURNALS = {
-    "nature": ("https://www.nature.com", "Nature"),
-    "science": ("https://www.science.org", "Science"),
-    "pnas": _PNAS,
-    "proc natl acad sci": _PNAS,
-    "proceedings of the national academy of sciences": _PNAS,
-    "acs catal": ("https://pubs.acs.org/journal/accacs", "ACS Catal."),
-    "acs catalysis": ("https://pubs.acs.org/journal/accacs", "ACS Catal."),
-    "j. am. chem. soc.": _JACS,
-    "jacs": _JACS,
-    "journal of the american chemical society": _JACS,
-    "j. chem. phys.": ("https://aip.scitation.org/journal/jcp", "JCP"),
-    "the journal of chemical physics": ("https://aip.scitation.org/journal/jcp", "JCP"),
-    "j. chem. theory comput.": _JCTC,
-    "journal of chemical theory and computation": _JCTC,
-    "chem. sci.": _CHEM_SCI,
-    "chemical science": _CHEM_SCI,
-    "angew. chem. int. ed.": _ANGEW,
-    "angewandte chemie international edition": _ANGEW,
-    "j. phys. chem. b": _JPCB,
-    "the journal of physical chemistry b": _JPCB,
-    "j. phys. chem. lett.": _JPCL,
-    "the journal of physical chemistry letters": _JPCL,
-    "j. phys. chem. a": _JPCA,
-    "the journal of physical chemistry a": _JPCA,
-    "chem. comm.": ("https://www.rsc.org/journals-books-databases/about-journals/chemcomm/", "Chem. Commun."),
-    "chemical communications": ("https://www.rsc.org/journals-books-databases/about-journals/chemcomm/", "Chem. Commun."),
-    "chemical reviews": ("https://pubs.acs.org/journal/chreay", "Chem. Rev."),
-    "journal of chemical information and modeling": ("https://pubs.acs.org/journal/jcisd8", "J. Chem. Inf. Model."),
-}
-
-JOURNAL_LOGO_DIR = "journal-logos"
+# Formatting tags allowed through from Crossref titles (e.g. CO<sub>2</sub>, <i>PyCPET</i>).
+TITLE_TAGS = ("i", "b", "sub", "sup")
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Update publications.html from Google Scholar.")
-    parser.add_argument("--id", default=SCHOLAR_ID, help=f"Google Scholar user ID (default: {SCHOLAR_ID})")
-    parser.add_argument("--count", type=int, default=25, help="Number of publications to fetch")
+    parser = argparse.ArgumentParser(description="Update publications.html from ORCID, Crossref and OpenAlex.")
+    parser.add_argument("--orcid", default=ORCID_ID, help=f"ORCID iD (default: {ORCID_ID})")
     parser.add_argument("--output", default="publications.html", help="Output HTML filename")
-    parser.add_argument("--cache-file", default="scholar-profile.html", help="Local cache file for Google Scholar profile HTML")
-    parser.add_argument("--cache-only", action="store_true", help="Skip fetching and parse from the local scholar profile cache")
+    parser.add_argument("--refresh", action="store_true", help="Look up every work on Crossref again (except pinned entries)")
     return parser.parse_args()
 
 
-def fetch_profile_page(scholar_id, count, cache_file=None):
-    url = f"https://scholar.google.com/citations?user={scholar_id}&hl=en&pagesize={count}"
-    last_error = None
-    for attempt in range(1, 5):
-        try:
-            response = requests.get(url, headers=HEADERS, timeout=15)
-            response.raise_for_status()
-            html = response.text
-            if cache_file:
-                Path(cache_file).write_text(html, encoding="utf-8")
-            return html
-        except requests.exceptions.HTTPError as exc:
-            last_error = exc
-            status = exc.response.status_code if exc.response is not None else None
-            if status not in (429, 503):
-                break
-            sleep_seconds = min(10, 2 ** attempt + random.random())
-            print(f"Rate limited by Scholar (status={status}), retrying in {sleep_seconds:.1f}s...")
-            time.sleep(sleep_seconds)
-        except requests.RequestException as exc:
-            last_error = exc
-            sleep_seconds = min(10, 2 ** attempt + random.random())
-            print(f"Network error fetching Scholar page, retrying in {sleep_seconds:.1f}s...")
-            time.sleep(sleep_seconds)
-
-    if cache_file and Path(cache_file).exists():
-        print(f"Warning: fetch failed; loading cached profile from {cache_file}")
-        return Path(cache_file).read_text(encoding="utf-8")
-
-    if last_error is not None:
-        raise last_error
-    raise RuntimeError("Unable to fetch Google Scholar profile page.")
+def get(url, **kwargs):
+    """GET with retries when rate-limited (429/503), waiting as long as the server asks."""
+    headers = {**HEADERS, **kwargs.pop("headers", {})}
+    for attempt in range(4):
+        response = requests.get(url, headers=headers, timeout=30, **kwargs)
+        if response.status_code not in (429, 503):
+            break
+        wait = response.headers.get("Retry-After", "")
+        time.sleep(min(30, int(wait)) if wait.isdigit() else 2 ** (attempt + 1))
+    response.raise_for_status()
+    return response
 
 
-def journal_name(venue_text):
-    """Return the journal part of a venue line, e.g. "Chemical Science 17 (22), ..." -> "Chemical Science"."""
-    return re.split(r",|\s\d", clean_text(venue_text or ""), maxsplit=1)[0].strip()
+def clean_text(text):
+    return " ".join((text or "").split()).strip()
 
 
-def match_journal(venue_text):
-    """Return (url, badge_text) for a known journal, or None."""
-    return JOURNALS.get(journal_name(venue_text).lower())
+def clean_doi(doi):
+    """Normalize a DOI, dropping suffixes like "/v2" or "v2" (preprint versions, so links go
+    to the latest version), ".s001" (supporting information) and ".abstract"."""
+    doi = re.sub(r"^https?://(dx\.)?doi\.org/", "", doi.strip(), flags=re.I)
+    doi = re.sub(r"(\.abstract|\.full|\.full\.pdf|\.pdf)$", "", doi)
+    doi = re.sub(r"(/v\d+|(?<=\d)v\d+|\.s\d{3})$", "", doi)
+    return doi.rstrip("./").lower()
 
 
-def fetch_public_link(citation_url):
+def normalize_title(title):
+    # Crossref titles can contain formatting tags (<i>…</i>) and entities (&gt;).
+    title = html.unescape(re.sub(r"<[^>]+>", "", title or ""))
+    return re.sub(r"[^a-z0-9]", "", title.lower())
+
+
+# ---------- ORCID: the list of works ----------
+
+def fetch_orcid_works(orcid):
+    """Works on the ORCID record as dicts, newest first, in the types the page shows."""
+    groups = get(f"https://pub.orcid.org/v3.0/{orcid}/works", headers={"Accept": "application/json"}).json()["group"]
+    works = []
+    for group in groups:
+        summary = group["work-summary"][0]
+        if summary["type"] not in INCLUDED_TYPES:
+            continue
+        ids = {e["external-id-type"]: e["external-id-value"] for e in group["external-ids"]["external-id"]}
+        year = ((summary.get("publication-date") or {}).get("year") or {}).get("value")
+        works.append({
+            "doi": clean_doi(ids["doi"]) if ids.get("doi") else None,
+            "title": clean_text(summary["title"]["title"]["value"]),
+            "journal": clean_text((summary.get("journal-title") or {}).get("value")),
+            "year": int(year) if year else None,
+            "preprint": summary["type"] == "preprint",
+        })
+    return works
+
+
+# ---------- Crossref: metadata, saved to the data file ----------
+
+def lookup_doi_by_title(title, preprint=False):
+    """Find a DOI on Crossref whose title matches exactly (ignoring case, punctuation and
+    formatting tags), for ORCID works that have no DOI."""
     try:
-        response = requests.get(citation_url, headers=HEADERS, timeout=15)
-        response.raise_for_status()
+        items = get(
+            "https://api.crossref.org/works",
+            params={"query.bibliographic": title, "rows": 10, "select": "DOI,title,type"},
+        ).json()["message"]["items"]
+    except (requests.RequestException, ValueError, KeyError):
+        return None
+    wanted = normalize_title(title)
+    # "component" records are supporting-information files that share the paper's title.
+    matches = [item for item in items
+               if item.get("type") != "component"
+               and any(normalize_title(t) == wanted for t in item.get("title", []))]
+    preferred = "posted-content" if preprint else "journal-article"
+    matches.sort(key=lambda item: item.get("type") != preferred)
+    return clean_doi(matches[0]["DOI"]) if matches else None
+
+
+def fetch_bibtex(doi):
+    """Fetch a BibTeX entry for a DOI via doi.org content negotiation."""
+    try:
+        response = get(f"https://doi.org/{doi}", headers={"Accept": "application/x-bibtex; charset=utf-8"})
     except requests.RequestException:
         return None
-
-    soup = BeautifulSoup(response.text, "html.parser")
-    title_link = soup.select_one("a.gsc_oci_title_link")
-    if title_link and title_link.get("href"):
-        return title_link["href"]
-    return None
+    response.encoding = "utf-8"
+    # Crossref titles can carry HTML formatting tags (e.g. <i>PyCPET</i>); BibTeX wants plain text.
+    entry = re.sub(r"</?(?:i|b|em|strong|sub|sup|scp)>", "", response.text).strip()
+    return entry if entry.startswith("@") else None
 
 
-AUTHOR_NAME = "P Ajmera"
+def clean_title(title):
+    """Crossref title as safe HTML: entities decoded, only simple formatting tags kept."""
+    text = html.escape(html.unescape(clean_text(title)), quote=False)
+    tags = "|".join(TITLE_TAGS)
+    return re.sub(rf"&lt;(/?)({tags})&gt;", r"<\1\2>", text)
 
 
-def get_archive_label(venue_text, direct_link):
-    candidates = [venue_text or "", direct_link or ""]
-    for raw in candidates:
-        lower = raw.lower()
-        for keyword, label in ARXIV_KEYWORDS.items():
-            if keyword in lower:
-                return label
-    return None
-
-
-def format_authors(authors):
-    if not authors:
-        return authors
-    escaped_name = html.escape(AUTHOR_NAME)
-    return html.escape(authors).replace(escaped_name, f'<span class="author-name">{escaped_name}</span>')
-
-
-def js_open(url):
-    """Build an onclick-safe window.open call for an HTML attribute."""
-    return html.escape(f"window.open({json.dumps(url)}, '_blank')")
-
-
-def parse_year(pub):
-    if pub.get("year"):
-        try:
-            return int(pub["year"])
-        except ValueError:
-            pass
-    if pub.get("venue_line"):
-        match = re.search(r"(19|20)\d{2}", pub["venue_line"])
-        if match:
-            return int(match.group(0))
-    return 0
-
-
-def parse_citations(row):
-    citation_tag = row.select_one("td.gsc_a_c a")
-    if not citation_tag:
+def resolve_work(work):
+    """Look a work up on Crossref. Returns a data-file entry, or None if not found."""
+    doi = work["doi"] or lookup_doi_by_title(work["title"], work["preprint"])
+    if not doi:
         return None
-    citation_text = clean_text(citation_tag.text)
-    if not citation_text:
-        return 0
     try:
-        return int(citation_text.replace(",", ""))
-    except ValueError:
+        record = get(f"https://api.crossref.org/works/{doi}").json()["message"]
+    except (requests.RequestException, ValueError, KeyError):
         return None
+    authors = []
+    for author in record.get("author", []):
+        if author.get("family"):
+            authors.append([author.get("given", ""), author["family"]])
+        elif author.get("name"):
+            authors.append(["", author["name"]])
+    date = (record.get("published") or record.get("issued") or {}).get("date-parts", [[None]])[0]
+    preprint = work["preprint"] or record.get("type") == "posted-content"
+    if preprint:
+        servers = [i.get("name") for i in record.get("institution", []) if i.get("name")]
+        venue = servers[0] if servers else PREPRINT_PREFIXES.get(doi.split("/")[0], "Preprint")
+    else:
+        venue = (record.get("short-container-title") or record.get("container-title") or [work["journal"]])[0]
+    return {
+        "doi": doi,
+        "title": clean_title((record.get("title") or [work["title"]])[0]),
+        "authors": authors,
+        "venue": venue,
+        "volume": record.get("volume", ""),
+        "pages": record.get("page", "") or record.get("article-number", ""),
+        "year": date[0] if date and date[0] else work["year"],
+        "preprint": preprint,
+        "published_as": [clean_doi(r["id"]) for r in record.get("relation", {}).get("is-preprint-of", []) if r.get("id-type") == "doi"],
+        "bibtex": fetch_bibtex(doi),
+    }
 
 
-def find_publications(html):
-    soup = BeautifulSoup(html, "html.parser")
-    rows = soup.select("tr.gsc_a_tr")
-    publications = []
+def load_data():
+    if DATA_FILE.exists():
+        return json.loads(DATA_FILE.read_text(encoding="utf-8"))
+    return {}
 
-    for idx, row in enumerate(rows):
-        title_tag = row.select_one("a.gsc_a_at")
-        if not title_tag:
-            continue
 
-        title = clean_text(title_tag.text)
-        scholar_link = urljoin("https://scholar.google.com", title_tag["href"])
-        gray_lines = [clean_text(line.text) for line in row.select(".gs_gray")]
-        authors = gray_lines[0] if len(gray_lines) > 0 else ""
-        venue_line = gray_lines[1] if len(gray_lines) > 1 else ""
-        year_tag = row.select_one("td.gsc_a_y span")
-        year = clean_text(year_tag.text) if year_tag else ""
-        citations = parse_citations(row)
+def save_data(data):
+    DATA_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
-        direct_link_tag = row.select_one(".gs_or_ggsm a")
-        direct_link = None
-        if direct_link_tag and direct_link_tag.get("href"):
-            direct_link = urljoin("https://scholar.google.com", direct_link_tag["href"])
-            if urlparse(direct_link).scheme == "":
-                direct_link = "https://scholar.google.com" + direct_link
 
-        publication_link = fetch_public_link(scholar_link)
+# ---------- OpenAlex: citation counts ----------
 
-        publications.append({
-            "index": idx,
-            "title": title,
-            "scholar_link": scholar_link,
-            "publication_link": publication_link,
-            "direct_link": direct_link,
-            "authors": authors,
-            "venue_line": venue_line,
-            "year": year,
-            "citations": citations,
-            "year_int": 0,
-        })
+def fetch_citation_counts(dois):
+    """{doi: cited_by_count} from OpenAlex, or {} if it can't be reached."""
+    counts = {}
+    for start in range(0, len(dois), 50):
+        batch = dois[start:start + 50]
+        try:
+            results = get(
+                "https://api.openalex.org/works",
+                params={"filter": "doi:" + "|".join(batch), "select": "doi,cited_by_count", "per-page": 50},
+            ).json()["results"]
+        except (requests.RequestException, ValueError, KeyError):
+            return {}
+        for work in results:
+            if work.get("doi"):
+                counts[clean_doi(work["doi"])] = work["cited_by_count"]
+    return counts
 
+
+def collect_publications(works, data, refresh=False):
+    """Merge ORCID works with saved metadata, looking up only what is new."""
+    publications, unresolved, resolved = [], [], 0
+    for index, work in enumerate(works):
+        entry = data.get(work["doi"]) if work["doi"] else None
+        if entry is None or (refresh and not entry.get("pinned")):
+            fresh = resolve_work(work)
+            if fresh:
+                if entry and entry.get("pinned"):
+                    fresh["pinned"] = True
+                if entry and "citations" in entry:
+                    fresh["citations"] = entry["citations"]
+                data[fresh["doi"]] = entry = fresh
+                resolved += 1
+        if entry is None:
+            unresolved.append(work["title"])
+        publications.append({"index": index, "work": work, "entry": entry})
+
+    # Hide a preprint once its published version is on the list too.
+    articles = [pub for pub in publications if not is_preprint(pub)]
+    article_dois = {pub["entry"]["doi"] for pub in articles if pub["entry"]}
+    article_titles = {normalize_title(title_of(pub)) for pub in articles}
+    publications = [pub for pub in publications if not (
+        is_preprint(pub) and pub["entry"]
+        and (set(pub["entry"].get("published_as", [])) & article_dois or normalize_title(title_of(pub)) in article_titles)
+    )]
+
+    counts = fetch_citation_counts([pub["entry"]["doi"] for pub in publications if pub["entry"]])
     for pub in publications:
-        pub["year_int"] = parse_year(pub)
+        if pub["entry"] and pub["entry"]["doi"] in counts:
+            pub["entry"]["citations"] = counts[pub["entry"]["doi"]]
 
-    publications.sort(key=lambda item: (item["year_int"], item["index"]), reverse=True)
-    total = len(publications)
-    for idx, pub in enumerate(publications, start=1):
-        pub["rank"] = total - idx + 1
-    return publications
+    publications.sort(key=lambda pub: (-(year_of(pub) or 0), pub["index"]))
+    return publications, unresolved, resolved, bool(counts)
+
+
+def year_of(pub):
+    return pub["entry"]["year"] if pub["entry"] else pub["work"]["year"]
+
+
+def title_of(pub):
+    return pub["entry"]["title"] if pub["entry"] else pub["work"]["title"]
+
+
+def is_preprint(pub):
+    return pub["entry"]["preprint"] if pub["entry"] else pub["work"]["preprint"]
+
+
+# ---------- Rendering ----------
+
+def abstract_image_slug(doi):
+    return doi.replace("/", "-")
+
+
+def find_abstract_image(doi):
+    if not doi:
+        return None
+    for ext in ABSTRACT_IMAGE_EXTENSIONS:
+        path = ABSTRACT_IMAGE_DIR / (abstract_image_slug(doi) + ext)
+        if path.exists():
+            return path.as_posix()
+    return None
+
+
+def format_author_list(authors):
+    """Format authors as "S. S. Chaturvedi, P. Ajmera, ..." with the site owner in bold."""
+    own_initial, own_family = AUTHOR_NAME.split()
+    names = []
+    for given, family in authors:
+        initials = " ".join(part[0] + "." for part in re.split(r"[\s.]+", given) if part)
+        name = html.escape(f"{initials} {family}".strip())
+        if family.lower() == own_family.lower() and given[:1].upper() == own_initial:
+            name = f'<span class="author-name">{name}</span>'
+        names.append(name)
+    return ", ".join(names)
+
+
+def format_venue(entry):
+    """E.g. "J. Am. Chem. Soc. 147, 32225–32237 (2025)", journal in italics."""
+    venue = f"<cite>{html.escape(entry['venue'])}</cite>"
+    if not entry.get("preprint"):
+        if entry.get("volume"):
+            venue += f" {html.escape(entry['volume'])}"
+        if entry.get("pages"):
+            venue += f", {html.escape(entry['pages']).replace('-', '–')}"
+    if entry.get("year"):
+        venue += f" ({entry['year']})"
+    return venue
 
 
 def render_pub_item(pub):
-    archive_label = get_archive_label(pub["venue_line"], pub["direct_link"])
-    journal_href = None
-    journal_badge_html = ""
-
-    if archive_label is None:
-        journal = match_journal(pub["venue_line"])
-        if journal:
-            journal_href, badge_text = journal
-            logo_key = normalize_logo_filename(badge_text)
-            journal_badge_html = (
-                f'<span class="journal-badge journal-name-badge" data-logo="{logo_key}" onclick="event.stopPropagation(); {js_open(journal_href)};" title="Open journal website">'
-                f'{html.escape(badge_text)}'
-                f'</span>'
-            )
-        else:
-            journal_text = journal_name(pub["venue_line"])
-            if journal_text:
-                journal_badge_html = f'<span class="journal-badge text-badge">{html.escape(journal_text)}</span>'
-
-    label_html = ""
-    if archive_label:
-        label_html = f'<span class="label arxiv">{archive_label}</span>'
-
-    venue_html = html.escape(clean_text(pub["venue_line"]))
-    if journal_href and venue_html:
-        venue_html = f'<a class="venue-link" href="{html.escape(journal_href)}" target="_blank" rel="noopener noreferrer">{venue_html}</a>'
-
-    meta_parts = [format_authors(pub["authors"]) ] if pub["authors"] else []
-    if venue_html:
-        meta_parts.append(venue_html)
-    elif pub.get("year"):
-        meta_parts.append(html.escape(pub["year"]))
-
-    meta_html = " | ".join(meta_parts)
+    work, entry = pub["work"], pub["entry"]
+    if entry:
+        doi = entry["doi"]
+        title_html = entry["title"]
+        authors_html = format_author_list(entry["authors"])
+        venue_html = format_venue(entry)
+        bibtex = entry.get("bibtex")
+        citations = entry.get("citations")
+    else:
+        # Not found on Crossref yet: show what ORCID has.
+        doi, bibtex, citations = work["doi"], None, None
+        title_html = html.escape(work["title"])
+        authors_html = ""
+        venue_html = " ".join(filter(None, [f"<cite>{html.escape(work['journal'])}</cite>" if work["journal"] else "",
+                                            f"({work['year']})" if work["year"] else ""]))
 
     citation_html = ""
-    if pub.get("citations") is not None:
-        citation_label = "citation" if pub["citations"] == 1 else "citations"
-        citation_html = (
-            f'<span class="citation-count" aria-label="{pub["citations"]} {citation_label}">'
-            f'Cited by {pub["citations"]}'
-            f'</span>'
-        )
+    if citations is not None:
+        citation_label = "citation" if citations == 1 else "citations"
+        citation_html = f'<span class="citation-count" aria-label="{citations} {citation_label}">Cited by {citations}</span>'
 
-    link_target = pub.get("publication_link") or pub["direct_link"] or pub["scholar_link"]
-    number_html = ""
-    if pub.get("rank") is not None:
-        number_html = f'<span class="paper-number">{pub["rank"]}</span>'
+    external = 'target="_blank" rel="noopener noreferrer"'
+    paper_href = html.escape(f"https://doi.org/{doi}") if doi else ""
+    title_link = f'<a class="paper-title-text" href="{paper_href}" {external}>{title_html}</a>' if doi else f'<span class="paper-title-text">{title_html}</span>'
+    actions = [f'<a class="paper-action" href="{paper_href}" {external}>Paper</a>'] if doi else []
+    bibtex_html = ""
+    if bibtex:
+        actions.append('<button class="paper-action" type="button" data-cite aria-expanded="false">Cite</button>')
+        bibtex_html = f'<pre class="paper-bibtex" hidden>{html.escape(bibtex)}</pre>'
+
+    figure_src = find_abstract_image(doi)
+    figure_html = ""
+    if figure_src:
+        figure_html = f'<a class="paper-figure" href="{paper_href}" {external}><img src="{html.escape(figure_src)}" alt="Graphical abstract" loading="lazy" /></a>'
+
     return (
-        f'<li class="paper-card" onclick="{js_open(link_target)}">'
+        f'<li class="paper-card{" has-figure" if figure_html else ""}">'
+        f'{figure_html}'
         f'  <div class="paper-info">'
-        f'    <div class="paper-title">{number_html}<span class="paper-title-text">{html.escape(pub["title"])}</span> {label_html}</div>'
-        f'    <div class="paper-meta-row"><div class="paper-meta">{meta_html}</div>{citation_html}</div>'
+        f'    <div class="paper-title">{title_link}</div>'
+        f'    <div class="paper-authors">{authors_html}</div>'
+        f'    <div class="paper-meta-row"><div class="paper-meta">{venue_html}</div>{citation_html}</div>'
+        f'    <div class="paper-actions">{"".join(actions)}</div>'
+        f'    {bibtex_html}'
         f'  </div>'
-        f'  <div class="paper-logo">{journal_badge_html}</div>'
         f'</li>'
     )
 
 
+def render_paper_list(pubs):
+    return '  <ol class="paper-list">\n' + "\n".join(render_pub_item(pub) for pub in pubs) + "\n  </ol>\n"
+
+
 def build_publications_sections(publications):
-    recent_items = []
-    old_items = []
+    """Preprints first, then journal articles grouped under year headings (newest first)."""
+    preprints = [pub for pub in publications if is_preprint(pub)]
+    articles = [pub for pub in publications if not is_preprint(pub)]
+    sections = []
+    if preprints:
+        sections.append("<section>\n  <h2>Preprints</h2>\n" + render_paper_list(preprints) + "</section>\n")
+    if articles:
+        years = "".join(
+            f'  <h3 class="paper-year">{year or "Undated"}</h3>\n' + render_paper_list(list(group))
+            for year, group in groupby(articles, key=year_of)
+        )
+        sections.append("<section>\n  <h2>Journal articles</h2>\n" + years + "</section>\n")
+    return "".join(sections)
 
-    for pub in publications:
-        item_html = render_pub_item(pub)
-        if pub["year_int"] and pub["year_int"] < 2022:
-            old_items.append(item_html)
-        else:
-            recent_items.append(item_html)
 
-    return recent_items, old_items
-
-
-def render_html(recent_items_html, old_items_html):
-    recent_section = (
-        "<section>\n"
-        "  <h2>Publications/Preprints from graduate studies</h2>\n"
-        "  <ol class=\"paper-list\">\n"
-        f"{chr(10).join(recent_items_html)}\n"
-        "  </ol>\n"
-        "</section>\n"
-    ) if recent_items_html else ""
-
-    old_section = (
-        "<section>\n"
-        "  <h2>Publications before graduate studies</h2>\n"
-        "  <ol class=\"paper-list\">\n"
-        f"{chr(10).join(old_items_html)}\n"
-        "  </ol>\n"
-        "</section>\n"
-    ) if old_items_html else ""
-
+def render_html(sections_html):
     return f"""<!DOCTYPE html>
 <html lang=\"en\">
 <head>
   <meta charset=\"UTF-8\" />
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />
-  <title>Publications + Preprints | Pujan Ajmera</title>
+  <title>Publications | Pujan Ajmera</title>
   <meta name=\"description\" content=\"Publications and preprints by Pujan Ajmera.\" />
   <link rel=\"icon\" href=\"favicon.svg\" type=\"image/svg+xml\" />
   <link rel=\"apple-touch-icon\" href=\"images/apple-touch-icon.png\" />
   <meta property=\"og:type\" content=\"website\" />
   <meta property=\"og:site_name\" content=\"Pujan Ajmera\" />
-  <meta property=\"og:title\" content=\"Publications + Preprints | Pujan Ajmera\" />
+  <meta property=\"og:title\" content=\"Publications | Pujan Ajmera\" />
   <meta property=\"og:description\" content=\"Publications and preprints by Pujan Ajmera.\" />
   <meta property=\"og:url\" content=\"https://pujanajmera.github.io/publications.html\" />
   <meta property=\"og:image\" content=\"https://pujanajmera.github.io/images/profile.jpg\" />
@@ -370,50 +408,46 @@ def render_html(recent_items_html, old_items_html):
   <link rel=\"stylesheet\" href=\"style.css\" />
   <script src=\"site-config.js\"></script>
   <script src=\"site.js\"></script>
+  <script src=\"publications.js\"></script>
 </head>
 <body>
   <nav>
     <a href=\"index.html\">Home</a>
+    <a href=\"research.html\">Research</a>
     <a href=\"publications.html\">Publications</a>
-    <a class=\"cv-link\" href=\"cv.html\">CV</a>
-    <a href=\"repos.html\">Repositories</a>
+    <a href=\"software.html\">Software</a>
+    <a class=\"cv-link\" href=\"documents/CV.pdf\" target=\"_blank\" rel=\"noopener\">CV</a>
     <a href=\"news.html\">News</a>
   </nav>
   <header>
-    <h1>Publications + Preprints</h1>
+    <h1>Publications</h1>
   </header>
-  {recent_section}
-  {old_section}
-  <footer>
-    <p>Generated from Google Scholar content. Preprints are labeled by archive type.</p>
-  </footer>
+  {sections_html}
+  <p class=\"page-note\">Citation counts from <a href=\"https://openalex.org\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAlex</a>.</p>
 </body>
 </html>"""
 
 
 def main():
     args = parse_args()
-    if args.cache_only:
-        cache_path = Path(args.cache_file)
-        if not cache_path.exists():
-            print(f"Cache-only mode requested but cache file does not exist: {cache_path}")
-            sys.exit(1)
-        html = cache_path.read_text(encoding="utf-8")
-    else:
-        html = fetch_profile_page(args.id, args.count, cache_file=args.cache_file)
-
-    publications = find_publications(html)
-    if not publications:
-        print("No publications found. Check your Google Scholar ID or page visibility.")
+    # If ORCID can't be reached this raises, and nothing is written: the page keeps its last version.
+    works = fetch_orcid_works(args.orcid)
+    if not works:
+        print(f"No works found on ORCID record {args.orcid}; leaving the page unchanged.")
         sys.exit(1)
 
-    recent_items, old_items = build_publications_sections(publications)
-    output_html = render_html(recent_items, old_items)
-    out_path = Path(args.output)
-    out_path.write_text(output_html, encoding="utf-8")
-    print(f"Updated {out_path} with {len(publications)} publications.")
+    data = load_data()
+    publications, unresolved, resolved, counts_updated = collect_publications(works, data, refresh=args.refresh)
+    save_data(data)
 
-    sync_logos(out_path, Path(JOURNAL_LOGO_DIR))
+    out_path = Path(args.output)
+    out_path.write_text(render_html(build_publications_sections(publications)), encoding="utf-8")
+    print(f"Updated {out_path} with {len(publications)} publications "
+          f"({resolved} looked up on Crossref; citation counts {'updated' if counts_updated else 'unchanged, OpenAlex unavailable'}).")
+    if unresolved:
+        print("Not found on Crossref yet (shown as ORCID lists them; add a DOI to the work on ORCID if it has none):")
+        for title in unresolved:
+            print(f"  {title}")
 
 
 if __name__ == "__main__":

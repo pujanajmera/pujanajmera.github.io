@@ -6,19 +6,14 @@
 
 :root {
   color-scheme: light;
-  --bg: #f6f7f9;
+  --bg: #ffffff;
   --surface: #ffffff;
   --surface-2: #f1f4f8;
   --text: #16181d;
   --text-muted: #5b6270;
   --border: rgba(16, 24, 40, 0.09);
   --accent: #1d5f9b;
-  --accent-soft: #e8f0f9;
-  --accent-strong: #123f6b;
-  --badge-bg: #133a63;
-  --preprint: #b42318;
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.05);
-  --scroll-shadow: rgba(16, 24, 40, 0.14);
   --radius: 12px;
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
@@ -27,18 +22,13 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #0f1216;
-  --surface: #171b21;
+  --surface: #0f1216;
   --surface-2: #1f242c;
   --text: #e6e8eb;
   --text-muted: #9aa3af;
   --border: rgba(255, 255, 255, 0.08);
   --accent: #7db4ec;
-  --accent-soft: #1c2b3d;
-  --accent-strong: #b9d6f5;
-  --badge-bg: #2a4a72;
-  --preprint: #e5534b;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --scroll-shadow: rgba(0, 0, 0, 0.6);
 }
 
 /* ---------- Base ---------- */
@@ -90,12 +80,14 @@ header {
 }
 
 section {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.5rem;
-  box-shadow: var(--shadow);
-  margin-bottom: 1.5rem;
+  margin-bottom: 2.25rem;
+}
+
+/* Consecutive sections are divided by a hairline rule instead of sitting in cards. */
+section + section,
+.top + section {
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
 }
 
 footer {
@@ -139,9 +131,8 @@ nav a.active {
   width: 2rem;
   height: 2rem;
   padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
+  border: 0;
+  background: none;
   color: var(--text-muted);
   cursor: pointer;
 }
@@ -167,7 +158,7 @@ nav a.active {
   list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.85rem;
   padding: 0;
   margin: 0.75rem 0 0;
 }
@@ -175,18 +166,14 @@ nav a.active {
 .profile-links a {
   display: inline-grid;
   place-items: center;
-  width: 2.1rem;
-  height: 2.1rem;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
+  width: 1.5rem;
+  height: 1.5rem;
   color: var(--text-muted);
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition: color 0.15s ease;
 }
 
 .profile-links a:hover {
   color: var(--accent);
-  border-color: var(--accent);
   text-decoration: none;
 }
 
@@ -216,17 +203,13 @@ nav a.active {
   margin-bottom: 0;
 }
 
-/* The News card is pinned to the height of the left column and scrolls inside. */
 .top-news {
-  position: relative;
+  padding-left: 1.5rem;
+  border-left: 1px solid var(--border);
 }
 
 .news-panel {
-  position: absolute;
-  inset: 0;
   margin: 0;
-  display: flex;
-  flex-direction: column;
 }
 
 /* ---------- News (home panel + news page) ---------- */
@@ -280,23 +263,6 @@ nav a.active {
   padding: 0.55rem 0;
 }
 
-.news-panel .news-item:last-child {
-  padding-bottom: 0.55rem;
-}
-
-.news-panel .news-list {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding-right: 0.5rem;
-  /* Shadows at the top/bottom edge hint that there is more to scroll;
-     the surface-colored "local" covers hide them once scrolled to that end. */
-  background:
-    linear-gradient(var(--surface) 30%, transparent) top / 100% 2rem no-repeat local,
-    linear-gradient(transparent, var(--surface) 70%) bottom / 100% 2rem no-repeat local,
-    radial-gradient(farthest-side at 50% 0, var(--scroll-shadow), transparent) top / 100% 0.6rem no-repeat scroll,
-    radial-gradient(farthest-side at 50% 100%, var(--scroll-shadow), transparent) bottom / 100% 0.6rem no-repeat scroll;
-}
 
 /* ---------- Publications ---------- */
 
@@ -307,24 +273,70 @@ nav a.active {
 }
 
 .paper-card {
-  cursor: pointer;
-  padding: 1rem;
-  border-radius: 0.75rem;
-  transition: background 0.16s ease;
+  padding: 1rem 0;
   border-bottom: 1px solid var(--border);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 140px;
-  gap: 1rem;
-  align-items: center;
-  min-height: 110px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.paper-card.has-figure {
+  grid-template-columns: 132px minmax(0, 1fr);
 }
 
 .paper-card:last-child {
   border-bottom: none;
 }
 
-.paper-card:hover {
+.paper-figure img {
+  display: block;
+  width: 132px;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #fff;
+}
+
+.paper-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+/* Paper / Cite: quiet outlined pills that pick up the accent on hover. */
+.paper-action {
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.paper-action:hover,
+.paper-action[aria-expanded="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+  text-decoration: none;
+}
+
+.paper-bibtex {
+  margin: 0.6rem 0 0;
+  padding: 0.75rem;
+  border-radius: 8px;
   background: var(--surface-2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .paper-info {
@@ -340,16 +352,28 @@ nav a.active {
 
 .paper-title-text {
   font-weight: 600;
+  color: var(--text);
 }
 
-.paper-number {
-  color: var(--accent);
-  font-weight: 700;
-  margin-right: 0.4rem;
+
+
+.paper-authors {
+  font-size: 0.95rem;
 }
 
-.paper-number::after {
-  content: ".";
+.paper-year {
+  margin: 1.75rem 0 0.25rem;
+  font-size: 1.05rem;
+  color: var(--text-muted);
+}
+
+.paper-year:first-of-type {
+  margin-top: 0.5rem;
+}
+
+.page-note {
+  color: var(--text-muted);
+  font-size: 0.85rem;
 }
 
 .paper-meta-row {
@@ -379,165 +403,212 @@ nav a.active {
 
 .citation-count {
   flex: 0 0 auto;
-  margin-right: 0.5rem;
-  padding: 0.25rem 0.55rem;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  font-size: 0.8rem;
-  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.85rem;
   white-space: nowrap;
 }
 
-.label.arxiv {
-  display: inline-block;
-  margin-left: 0.4rem;
-  vertical-align: 0.1em;
-  line-height: 1.4;
-  background: var(--preprint);
-  color: #fff;
-  padding: 0.18rem 0.45rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+
+
+
+
+
+
+/* ---------- Research ---------- */
+
+.research-lede {
+  max-width: 46rem;
+  margin: 0.75rem 0 0;
+  font-size: 1.1rem;
+  line-height: 1.65;
 }
 
-.paper-logo {
+/* Table of contents: three columns divided by hairlines. */
+.research-contents {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 0 1.75rem;
+  padding: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.research-contents li + li {
+  border-left: 1px solid var(--border);
+}
+
+.research-contents a {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-}
-
-.journal-badge {
-  display: inline-flex;
-  align-items: center;
-}
-
-/* Logos are dark-on-transparent artwork, so they always sit on white. */
-.journal-badge img {
-  height: 36px;
-  width: auto;
-  object-fit: contain;
-  padding: 2px 4px;
-  background: #fff;
-  border-radius: 6px;
-  box-shadow: 0 0 0 1px var(--border);
-}
-
-.journal-name-badge {
-  padding: 0.35rem 0.75rem;
-  border-radius: 0.7rem;
-  background: var(--badge-bg);
-  color: #fff;
+  gap: 0.75rem;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0.9rem 1rem;
+  color: var(--text);
   font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  line-height: 1.4;
 }
 
-.journal-badge.text-badge {
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.6rem;
-  font-size: 0.85rem;
+.research-contents li:first-child a {
+  padding-left: 0;
 }
 
-/* ---------- Repositories ---------- */
+.research-contents a:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
 
-.repo-list {
+.research-num {
+  min-width: 1.25rem;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+section.theme {
   display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
   gap: 1rem;
+  margin: 0;
+  padding: 2rem 0;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: none;
+  scroll-margin-top: 1rem;
 }
 
-.repo-row {
+section.theme:first-child {
+  border-top: 0;
+}
+
+.theme-num {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--accent);
+}
+
+.theme h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.45rem;
+  line-height: 1.25;
+}
+
+.theme-content {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) 0.9fr;
-  gap: 1rem;
-  padding: 1.2rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2rem;
   align-items: start;
 }
 
-.repo-title {
-  margin: 0 0 0.35rem 0;
-  font-family: var(--font-sans);
-  font-size: 1.05rem;
-  font-weight: 600;
+.theme-text p {
+  margin-top: 0;
+}
+
+.theme-text > :last-child {
+  margin-bottom: 0;
+}
+
+.theme h3 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1rem;
+  font-style: italic;
   letter-spacing: 0;
 }
 
-.repo-title a {
-  color: var(--text);
-}
-
-.repo-description {
+.theme-papers {
+  display: grid;
+  gap: 0.45rem;
   margin: 0;
-  color: var(--text-muted);
+  padding-left: 1.25rem;
   font-size: 0.95rem;
 }
 
-.repo-stats {
-  display: grid;
-  gap: 0.6rem;
-  justify-items: end;
-}
-
-.repo-stats > div:first-child {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.repo-stat {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.3rem 0.6rem;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.repo-meta {
-  display: grid;
-  gap: 0.2rem;
-  justify-items: end;
+.theme-papers li::marker {
   color: var(--text-muted);
-  font-size: 0.9rem;
 }
 
-/* ---------- CV ---------- */
+.theme-papers cite {
+  color: var(--text-muted);
+}
 
-.pdf-frame {
+.research-figure {
+  width: 280px;
+  margin: 0;
+}
+
+/* Shown by site.js once its optional image has loaded. */
+.research-figure:not(.is-loaded) {
+  display: none;
+}
+
+.research-figure img {
   display: block;
   width: 100%;
-  height: min(88vh, 1100px);
+  height: auto;
+  border-radius: 8px;
   border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface-2);
+  background: #fff;
+}
+
+/* ---------- Software ---------- */
+
+.software-list {
+  list-style: none;
+  margin: 0 0 1.5rem;
+  padding: 0;
+}
+
+.software-item {
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.software-item:first-child {
+  padding-top: 0.25rem;
+}
+
+.software-item h2 {
+  margin: 0 0 0.35rem;
+}
+
+.software-item h2 a {
+  color: var(--text);
+}
+
+.software-item p {
+  max-width: 46rem;
+  margin: 0;
+  color: var(--text-muted);
 }
 
 /* ---------- Narrow screens ---------- */
 
 @media (max-width: 800px) {
-  .top {
+  .top,
+  .theme-content,
+  .research-contents {
     grid-template-columns: 1fr;
   }
-  .news-panel {
-    position: static;
+  .research-contents li + li {
+    border-left: 0;
+    border-top: 1px solid var(--border);
   }
-  .news-panel .news-list {
-    overflow: visible;
-    padding-right: 0;
-    background: none;
+  .research-contents a {
+    padding: 0.7rem 0;
+  }
+  .top-news {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    padding-top: 1.5rem;
+    padding-left: 0;
+  }
+  .research-figure {
+    width: 100%;
+    max-width: 420px;
   }
 }
 
@@ -547,14 +618,18 @@ nav a.active {
     flex-direction: column;
     gap: 0.4rem;
   }
-  .pdf-frame {
-    height: min(78vh, 900px);
-  }
 }
 
 @media (max-width: 600px) {
   body {
     padding: 1.25rem 1rem;
+  }
+  section.theme {
+    grid-template-columns: 1.75rem minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+  .theme-num {
+    font-size: 1.3rem;
   }
   .profile-photo {
     width: 80px;
@@ -564,19 +639,9 @@ nav a.active {
     grid-template-columns: 1fr;
     gap: 0.1rem;
   }
-  .paper-card {
+  .paper-card,
+  .paper-card.has-figure {
     grid-template-columns: 1fr;
     gap: 0.5rem;
-    min-height: 0;
-  }
-  .paper-logo {
-    justify-content: flex-start;
-  }
-  .repo-row {
-    grid-template-columns: 1fr;
-  }
-  .repo-stats,
-  .repo-meta {
-    justify-items: start;
   }
 }

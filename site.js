@@ -19,6 +19,22 @@
     } catch (e) {}
   }
 
+  // Optional images (<img data-optional>): their <figure> stays hidden (see style.css)
+  // until the image loads, and is removed if the file is missing. A figure can then be
+  // added later just by saving the image at its path.
+  document.addEventListener('load', function (event) {
+    var img = event.target;
+    if (img.tagName === 'IMG' && img.hasAttribute('data-optional') && img.closest('figure')) {
+      img.closest('figure').classList.add('is-loaded');
+    }
+  }, true);
+  document.addEventListener('error', function (event) {
+    var img = event.target;
+    if (img.tagName === 'IMG' && img.hasAttribute('data-optional')) {
+      (img.closest('figure') || img).remove();
+    }
+  }, true);
+
   // Apply a saved choice before the page paints, so it never flashes the other theme.
   var saved = storedTheme();
   if (saved === 'light' || saved === 'dark') {
