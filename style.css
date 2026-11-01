@@ -1,8 +1,6 @@
-/* Shared styles for every page. Colors are tokens on :root so dark mode only
-   has to swap the tokens. The site is light by default; site.js sets
-   data-theme="dark" when a visitor picks dark with the nav toggle. */
+/* Shared styles for every page. One typeface (Source Serif 4) throughout. */
 
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap");
 
 :root {
   color-scheme: light;
@@ -15,29 +13,17 @@
   --accent: #1d5f9b;
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.05);
   --radius: 12px;
-  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
-}
-
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #0f1216;
-  --surface: #0f1216;
-  --surface-2: #1f242c;
-  --text: #e6e8eb;
-  --text-muted: #9aa3af;
-  --border: rgba(255, 255, 255, 0.08);
-  --accent: #7db4ec;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 /* ---------- Base ---------- */
 
 body {
-  font-family: var(--font-sans);
+  font-family: var(--font-serif);
+  font-size: 1.0625rem;
   margin: 0 auto;
   padding: 2rem;
-  max-width: 980px;
+  max-width: 44rem;
   min-height: 100vh;
   line-height: 1.6;
   color: var(--text);
@@ -80,14 +66,7 @@ header {
 }
 
 section {
-  margin-bottom: 2.25rem;
-}
-
-/* Consecutive sections are divided by a hairline rule instead of sitting in cards. */
-section + section,
-.top + section {
-  padding-top: 2rem;
-  border-top: 1px solid var(--border);
+  margin-bottom: 2.75rem;
 }
 
 footer {
@@ -117,37 +96,11 @@ nav a.active {
   text-underline-offset: 0.4em;
 }
 
-.site-footer {
-  margin-top: 2.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
-  font-size: 0.85rem;
-}
 
-.theme-toggle {
-  margin-left: auto;
-  display: inline-grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--text-muted);
-  cursor: pointer;
-}
 
-.theme-toggle:hover {
-  color: var(--text);
-}
 
 /* ---------- Home: intro + news column ---------- */
 
-.intro {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-}
 
 .intro-title {
   margin: 0.35rem 0 0;
@@ -155,62 +108,29 @@ nav a.active {
 }
 
 .profile-links {
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.85rem;
-  padding: 0;
-  margin: 0.75rem 0 0;
-}
-
-.profile-links a {
-  display: inline-grid;
-  place-items: center;
-  width: 1.5rem;
-  height: 1.5rem;
+  margin: 0.5rem 0 0;
   color: var(--text-muted);
-  transition: color 0.15s ease;
 }
 
-.profile-links a:hover {
-  color: var(--accent);
-  text-decoration: none;
-}
 
-.profile-links svg {
-  width: 1rem;
-  height: 1rem;
-  fill: currentColor;
-}
 
+
+/* Square photo floated beside the About text. */
 .profile-photo {
-  width: 112px;
-  height: 112px;
-  flex-shrink: 0;
-  border-radius: 50%;
+  float: right;
+  width: 128px;
+  height: 128px;
+  margin: 0.25rem 0 0.75rem 1.25rem;
+  border-radius: 4px;
   object-fit: cover;
-  box-shadow: 0 0 0 3px var(--surface), 0 1px 6px rgba(0, 0, 0, 0.15);
 }
 
-.top {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
+.about::after {
+  content: "";
+  display: block;
+  clear: both;
 }
 
-.top-main section {
-  margin-bottom: 0;
-}
-
-.top-news {
-  padding-left: 1.5rem;
-  border-left: 1px solid var(--border);
-}
-
-.news-panel {
-  margin: 0;
-}
 
 /* ---------- News (home panel + news page) ---------- */
 
@@ -225,8 +145,7 @@ nav a.active {
   grid-template-columns: 7.5rem minmax(0, 1fr);
   gap: 1rem;
   font-size: 0.95rem;
-  padding: 0.65rem 0;
-  border-bottom: 1px solid var(--border);
+  padding: 0.4rem 0;
 }
 
 .news-item:first-child {
@@ -234,7 +153,6 @@ nav a.active {
 }
 
 .news-item:last-child {
-  border-bottom: none;
   padding-bottom: 0;
 }
 
@@ -255,13 +173,6 @@ nav a.active {
   font-size: 0.95rem;
 }
 
-.news-panel .news-item {
-  grid-template-columns: 1fr;
-  gap: 0.1rem;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  padding: 0.55rem 0;
-}
 
 
 /* ---------- Publications ---------- */
@@ -423,35 +334,21 @@ nav a.active {
   line-height: 1.65;
 }
 
-/* Table of contents: three columns divided by hairlines. */
 .research-contents {
   list-style: none;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin: 0 0 1.75rem;
+  margin: 0 0 1rem;
   padding: 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-
-.research-contents li + li {
-  border-left: 1px solid var(--border);
 }
 
 .research-contents a {
   display: flex;
   gap: 0.75rem;
-  height: 100%;
-  box-sizing: border-box;
-  padding: 0.9rem 1rem;
+  padding: 0.15rem 0;
   color: var(--text);
   font-size: 0.95rem;
   line-height: 1.4;
 }
 
-.research-contents li:first-child a {
-  padding-left: 0;
-}
 
 .research-contents a:hover {
   color: var(--accent);
@@ -470,18 +367,10 @@ section.theme {
   grid-template-columns: 3rem minmax(0, 1fr);
   gap: 1rem;
   margin: 0;
-  padding: 2rem 0;
-  background: none;
-  border: 0;
-  border-top: 1px solid var(--border);
-  border-radius: 0;
-  box-shadow: none;
+  padding: 1.75rem 0;
   scroll-margin-top: 1rem;
 }
 
-section.theme:first-child {
-  border-top: 0;
-}
 
 .theme-num {
   font-family: var(--font-serif);
@@ -499,9 +388,7 @@ section.theme:first-child {
 
 .theme-content {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 2rem;
-  align-items: start;
+  gap: 1.25rem;
 }
 
 .theme-text p {
@@ -525,6 +412,15 @@ section.theme:first-child {
   margin: 0;
   padding-left: 1.25rem;
   font-size: 0.95rem;
+}
+
+.theme-paper {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.theme-paper cite {
+  color: var(--text-muted);
 }
 
 .theme-papers li::marker {
@@ -585,27 +481,29 @@ section.theme:first-child {
   color: var(--text-muted);
 }
 
+.software-meta {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.software-install {
+  display: inline-block;
+  margin: 0.6rem 0 0;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  background: var(--surface-2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+}
+
+.software-install[hidden] {
+  display: none;
+}
+
 /* ---------- Narrow screens ---------- */
 
 @media (max-width: 800px) {
-  .top,
-  .theme-content,
-  .research-contents {
-    grid-template-columns: 1fr;
-  }
-  .research-contents li + li {
-    border-left: 0;
-    border-top: 1px solid var(--border);
-  }
-  .research-contents a {
-    padding: 0.7rem 0;
-  }
-  .top-news {
-    border-left: 0;
-    border-top: 1px solid var(--border);
-    padding-top: 1.5rem;
-    padding-left: 0;
-  }
   .research-figure {
     width: 100%;
     max-width: 420px;
@@ -632,8 +530,8 @@ section.theme:first-child {
     font-size: 1.3rem;
   }
   .profile-photo {
-    width: 80px;
-    height: 80px;
+    width: 96px;
+    height: 96px;
   }
   .news-item {
     grid-template-columns: 1fr;

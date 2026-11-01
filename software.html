@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="style.css" />
   <script src="site-config.js"></script>
   <script src="site.js"></script>
+  <script src="software.js"></script>
 </head>
 <body>
 
@@ -33,25 +34,29 @@
     <h1>Software</h1>
   </header>
 
-  <!-- To add a project, copy one <li> block. -->
+  <!-- To add a project, copy one <li> block. data-repo (GitHub) and data-pypi (PyPI package, optional)
+       fill in live stars and latest releases via software.js. -->
   <ul class="software-list">
-    <li class="software-item">
+    <li class="software-item" data-repo="pujanajmera/pycpet" data-pypi="pycpet">
       <h2><a href="https://github.com/pujanajmera/pycpet" target="_blank" rel="noopener noreferrer">pycpet</a></h2>
       <p>Computing Protein Electric Field Topology in python, built for high-throughput accelerated calculations.</p>
+      <p class="software-meta" hidden></p>
+      <pre class="software-install" hidden><code>pip install pycpet</code></pre>
       <div class="paper-actions">
         <a class="paper-action" href="https://github.com/pujanajmera/pycpet" target="_blank" rel="noopener noreferrer">GitHub</a>
         <a class="paper-action" href="https://doi.org/10.1021/acs.jctc.5c00138" target="_blank" rel="noopener noreferrer">Paper</a>
       </div>
     </li>
-    <li class="software-item">
+    <li class="software-item" data-repo="pujanajmera/mparam">
       <h2><a href="https://github.com/pujanajmera/mparam" target="_blank" rel="noopener noreferrer">mparam</a></h2>
       <p>Unifying set of files and protocol to parametrize AMBER metal force fields, using QM software outside of those currently supported by the MCPB.py protocol.</p>
+      <p class="software-meta" hidden></p>
       <div class="paper-actions">
         <a class="paper-action" href="https://github.com/pujanajmera/mparam" target="_blank" rel="noopener noreferrer">GitHub</a>
       </div>
     </li>
   </ul>
 
-  <p class="news-more"><a href="https://github.com/pujanajmera" target="_blank" rel="noopener noreferrer">All code on GitHub →</a></p>
+  <p class="news-more"><a href="https://github.com/pujanajmera" target="_blank" rel="noopener noreferrer">All code on GitHub</a></p>
 </body>
 </html>
