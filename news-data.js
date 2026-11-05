@@ -29,11 +29,11 @@ window.NEWS = [
   },
   {
     date: "2025-08-19",
-    text: 'An intriguing exploration of how varying protein scaffolds, and across dynamics, can yield genuinely unique electric fields that still map to reactivity! Look at our new <a href="https://pubs.acs.org/doi/abs/10.1021/jacs.5c11931">JACS paper</a>, which includes some neat updates to <a href="https://github.com/pujanajmera/pycpet">pycpet</a> including tensor-based clustering for fields and QM/MM electrostatic decomposition analysis.'
+    text: 'An intriguing exploration of how varying protein scaffolds, and across dynamics, can yield genuinely unique electric fields that still map to reactivity! Look at our new <a href="https://pubs.acs.org/doi/abs/10.1021/jacs.5c11931">JACS paper</a>, which includes some neat updates to <a href="https://github.com/pujanajmera/pycpet">PyCPET</a> including tensor-based clustering for fields and QM/MM electrostatic decomposition analysis.'
   },
   {
     date: "2025-04-08",
-    text: 'Our software, <a href="https://github.com/pujanajmera/pycpet">pycpet</a>, is now <a href="https://pubs.acs.org/doi/abs/10.1021/acs.jctc.5c00138">published in JCTC</a>.'
+    text: 'Our software, <a href="https://github.com/pujanajmera/pycpet">PyCPET</a>, is now <a href="https://pubs.acs.org/doi/abs/10.1021/acs.jctc.5c00138">published in JCTC</a>.'
   },
   {
     date: "2025-02-24",
