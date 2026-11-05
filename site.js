@@ -18,10 +18,17 @@
     }
   }, true);
 
+  // Pages are linked without ".html" (GitHub Pages serves /research from research.html),
+  // so "/research", "/research.html" and "research" all name the same page.
+  function pageName(path) {
+    var name = path.split('/').pop().replace(/\.html$/, '');
+    return name === 'index' ? '' : name;
+  }
+
   function markCurrentPage() {
-    var page = window.location.pathname.split('/').pop() || 'index.html';
+    var page = pageName(window.location.pathname);
     document.querySelectorAll('nav a').forEach(function (link) {
-      if (link.getAttribute('href') === page) {
+      if (link.host === window.location.host && pageName(link.pathname) === page) {
         link.classList.add('active');
         link.setAttribute('aria-current', 'page');
       }
