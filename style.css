@@ -23,7 +23,7 @@ body {
   font-size: 1.0625rem;
   margin: 0 auto;
   padding: 2rem;
-  max-width: 44rem;
+  max-width: 50rem;
   min-height: 100vh;
   line-height: 1.6;
   color: var(--text);
@@ -192,8 +192,28 @@ nav a.active {
   align-items: start;
 }
 
+/* Graphical abstract: in a column left of the whole paper, all at one width. The image is
+   centered between the title's top and the journal line's bottom; publications.js sets
+   --figure-top, since that span depends on how the text wraps. */
 .paper-card.has-figure {
-  grid-template-columns: 132px minmax(0, 1fr);
+  grid-template-columns: 200px minmax(0, 1fr);
+  column-gap: 0.85rem;
+  row-gap: 0;
+  align-content: start;
+}
+
+.paper-card.has-figure .paper-info {
+  display: contents;
+}
+
+.paper-card.has-figure .paper-info > * {
+  grid-column: 2;
+}
+
+.paper-figure {
+  grid-column: 1;
+  grid-row: 1 / span 4;
+  position: relative;
 }
 
 .paper-card:last-child {
@@ -201,12 +221,13 @@ nav a.active {
 }
 
 .paper-figure img {
+  position: absolute;
+  top: var(--figure-top, 0);
+  left: 0;
   display: block;
-  width: 132px;
+  box-sizing: border-box;
+  width: 100%;
   height: auto;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: #fff;
 }
 
 .paper-actions {
@@ -300,8 +321,10 @@ nav a.active {
 }
 
 .author-name {
-  font-weight: 600;
   color: var(--text);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
 }
 
 .venue-link {
@@ -537,9 +560,11 @@ section.theme {
     grid-template-columns: 1fr;
     gap: 0.1rem;
   }
-  .paper-card,
-  .paper-card.has-figure {
-    grid-template-columns: 1fr;
+  .paper-card {
     gap: 0.5rem;
+  }
+  .paper-card.has-figure {
+    grid-template-columns: 104px minmax(0, 1fr);
+    column-gap: 0.75rem;
   }
 }

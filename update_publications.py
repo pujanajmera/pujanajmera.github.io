@@ -12,9 +12,14 @@ on each run and are saved too, so a failed lookup keeps the last known counts.
 
 To correct a work, edit its entry in publications-data.json and re-run; edits are kept.
 --refresh looks every work up again (overwriting edits) except entries with "pinned": true.
-A preprint is hidden once its published version is also on ORCID.
+Preprints are looked up again on every run, so new versions (and their titles) show up; they
+link to the newest version. A preprint is hidden once its published version is also on ORCID.
 
-All three services allow automated access, so this runs daily in GitHub Actions
+Graphical (TOC) abstracts for journal articles are downloaded into images/papers/ from PubMed
+Central's open-access subset, or else from the Alexandrova lab's publications page. For other
+papers, save the image there yourself (see ABSTRACT_IMAGE_DIR); saved images are never replaced.
+
+All of these services allow automated access, so this runs daily in GitHub Actions
 (.github/workflows/update-publications.yml).
 """
 
@@ -24,6 +29,7 @@ import json
 import re
 import sys
 import time
+import unicodedata
 from itertools import groupby
 from pathlib import Path
 
@@ -113,6 +119,7 @@ def fetch_orcid_works(orcid):
         year = ((summary.get("publication-date") or {}).get("year") or {}).get("value")
         works.append({
             "doi": clean_doi(ids["doi"]) if ids.get("doi") else None,
+            "doi_raw": ids["doi"].strip().lower() if ids.get("doi") else None,
             "title": clean_text(summary["title"]["title"]["value"]),
             "journal": clean_text((summary.get("journal-title") or {}).get("value")),
             "year": int(year) if year else None,
@@ -162,14 +169,55 @@ def clean_title(title):
     return re.sub(rf"&lt;(/?)({tags})&gt;", r"<\1\2>", text)
 
 
+def crossref_record(doi):
+    try:
+        return get(f"https://api.crossref.org/works/{doi}").json()["message"]
+    except (requests.RequestException, ValueError, KeyError):
+        return None
+
+
+def preprint_versions(doi, first):
+    """Crossref records for each version of a preprint, oldest first: "<doi>/v1", "<doi>/v2", ...
+    Newer ChemRxiv DOIs only exist with a version suffix; older ones use the bare DOI (`first`,
+    if found) as v1 and add "/v2" onward. Other servers give just `first`."""
+    versions = [first] if first else []
+    number = 1
+    while True:
+        record = crossref_record(f"{doi}/v{number}")
+        if record:
+            versions.append(record)
+        elif number > 1 or not first:
+            return versions
+        number += 1
+
+
+def doi_resolves(doi):
+    try:
+        response = requests.head(f"https://doi.org/{doi}", headers=HEADERS, timeout=30)
+    except requests.RequestException:
+        return False
+    return response.status_code in (301, 302, 303, 307, 308)
+
+
 def resolve_work(work):
     """Look a work up on Crossref. Returns a data-file entry, or None if not found."""
     doi = work["doi"] or lookup_doi_by_title(work["title"], work["preprint"])
     if not doi:
         return None
-    try:
-        record = get(f"https://api.crossref.org/works/{doi}").json()["message"]
-    except (requests.RequestException, ValueError, KeyError):
+    record = crossref_record(doi)
+    link_doi, first = doi, record
+    if work["preprint"] or doi.split("/")[0] in PREPRINT_PREFIXES:
+        versions = preprint_versions(doi, record)
+        if versions:
+            # Metadata from the newest version, year from the first; link to the bare DOI
+            # (which always points at the newest version) unless it doesn't resolve.
+            first, record = versions[0], versions[-1]
+            if not doi_resolves(doi):
+                link_doi = record["DOI"].lower()
+    if record is None and work.get("doi_raw"):
+        record = first = crossref_record(work["doi_raw"])
+        link_doi = work["doi_raw"]
+    if record is None:
         return None
     authors = []
     for author in record.get("author", []):
@@ -177,7 +225,7 @@ def resolve_work(work):
             authors.append([author.get("given", ""), author["family"]])
         elif author.get("name"):
             authors.append(["", author["name"]])
-    date = (record.get("published") or record.get("issued") or {}).get("date-parts", [[None]])[0]
+    date = (first.get("published") or first.get("issued") or {}).get("date-parts", [[None]])[0]
     preprint = work["preprint"] or record.get("type") == "posted-content"
     if preprint:
         servers = [i.get("name") for i in record.get("institution", []) if i.get("name")]
@@ -186,6 +234,7 @@ def resolve_work(work):
         venue = (record.get("short-container-title") or record.get("container-title") or [work["journal"]])[0]
     return {
         "doi": doi,
+        "link_doi": link_doi,
         "title": clean_title((record.get("title") or [work["title"]])[0]),
         "authors": authors,
         "venue": venue,
@@ -194,7 +243,7 @@ def resolve_work(work):
         "year": date[0] if date and date[0] else work["year"],
         "preprint": preprint,
         "published_as": [clean_doi(r["id"]) for r in record.get("relation", {}).get("is-preprint-of", []) if r.get("id-type") == "doi"],
-        "bibtex": fetch_bibtex(doi),
+        "bibtex": fetch_bibtex(record.get("DOI", link_doi).lower()),
     }
 
 
@@ -208,23 +257,119 @@ def save_data(data):
     DATA_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
-# ---------- OpenAlex: citation counts ----------
+# ---------- PubMed Central: graphical abstracts ----------
+# Articles in PMC's open-access subset are mirrored, with their figures, in the
+# pmc-oa-opendata bucket on AWS (https://pmc.ncbi.nlm.nih.gov/tools/pmcaws/).
 
-def fetch_citation_counts(dois):
-    """{doi: cited_by_count} from OpenAlex, or {} if it can't be reached."""
+PMC_BUCKET = "https://pmc-oa-opendata.s3.amazonaws.com"
+
+
+def fetch_graphical_abstract(doi, pmcid):
+    """Save an article's graphical (TOC) abstract from PMC's open-access bucket, if it has one."""
+    try:
+        listing = get(PMC_BUCKET, params={"list-type": "2", "prefix": f"PMC{pmcid}."}).text
+        keys = re.findall(r"<Key>([^<]+)</Key>", listing)
+        xml_keys = sorted((k for k in keys if k.endswith(".xml")), key=lambda k: int(k.split("/")[0].split(".")[1]))
+        if not xml_keys:
+            return None  # not in the open-access subset
+        folder = xml_keys[-1].split("/")[0]  # newest version
+        xml = get(f"{PMC_BUCKET}/{xml_keys[-1]}").text
+        match = (re.search(r'<abstract[^>]*abstract-type="(?:toc|graphical)"[^>]*>(?:(?!</abstract>).)*?xlink:href="([^"]+)"', xml, re.S)
+                 or re.search(r'<graphic\b[^>]*\bid="ga"[^>]*\bxlink:href="([^"]+)"', xml))
+        if not match:
+            return None
+        name = Path(match.group(1)).stem
+        image_key = next((k for k in keys if k.startswith(folder + "/") and Path(k).stem == name), None)
+        if not image_key:
+            return None
+        image = get(f"{PMC_BUCKET}/{image_key}").content
+    except requests.RequestException:
+        return None
+    ABSTRACT_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+    path = ABSTRACT_IMAGE_DIR / (abstract_image_slug(doi) + Path(image_key).suffix.lower())
+    path.write_bytes(image)
+    return path
+
+
+# ---------- Alexandrova lab website: TOC images ----------
+# The lab's publications page shows each paper's TOC graphic beside a link to its DOI.
+
+LAB_PUBLICATIONS_URL = "https://alexandrova.chem.ucla.edu/publications/"
+
+
+def fetch_lab_images():
+    """{doi: image URL} from the lab's publications page, or {} if it can't be reached."""
+    try:
+        page = get(LAB_PUBLICATIONS_URL).text
+    except requests.RequestException:
+        return {}
+    images = {}
+    for item in page.split('<li class="wp-block-post')[1:]:
+        dois = re.findall(r'href="https?://[^"]*?(10\.\d{4,}/[^"?#\s]+)', item)
+        srcset = re.search(r'<img[^>]*\bsrcset="([^"]+)"', item)
+        if not dois or not srcset:
+            continue
+        # The smallest size at least 600px wide (sharp at the page's ~150px), else the largest.
+        sizes = sorted((int(w), url) for url, w in re.findall(r"(\S+)\s+(\d+)w", srcset.group(1)))
+        url = next((url for w, url in sizes if w >= 600), sizes[-1][1])
+        images.setdefault(clean_doi(dois[0]), url)
+    return images
+
+
+def save_image(doi, url):
+    try:
+        image = get(url).content
+    except requests.RequestException:
+        return None
+    ABSTRACT_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+    path = ABSTRACT_IMAGE_DIR / (abstract_image_slug(doi) + Path(url.split("?")[0]).suffix.lower())
+    path.write_bytes(image)
+    return path
+
+
+def fetch_missing_graphical_abstracts(publications):
+    """Download graphical abstracts for journal articles that don't have an image yet, from
+    PubMed Central or else the lab website. Returns how many were found."""
+    missing = [pub["entry"] for pub in publications
+               if pub["entry"] and not pub["entry"]["preprint"] and not find_abstract_image(pub["entry"]["doi"])]
+    lab_images = fetch_lab_images() if missing else {}
+    found = 0
+    for entry in missing:
+        if entry.get("pmcid") and fetch_graphical_abstract(entry["doi"], entry["pmcid"]):
+            found += 1
+        elif entry["doi"] in lab_images and save_image(entry["doi"], lab_images[entry["doi"]]):
+            found += 1
+    return found
+
+
+# ---------- OpenAlex: citation counts and PubMed Central ids ----------
+
+def author_key(given, family):
+    """First initial and family name, without case or accents: "a sadun", "d bim"."""
+    name = f"{given.strip()[:1]} {family.split()[-1] if family.split() else ''}"
+    return unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode().lower().strip()
+
+
+def fetch_openalex(dois):
+    """{doi: (cited_by_count, PMC id or None, corresponding authors as author_key()s)} from
+    OpenAlex, or {} if it can't be reached."""
     counts = {}
     for start in range(0, len(dois), 50):
         batch = dois[start:start + 50]
         try:
             results = get(
                 "https://api.openalex.org/works",
-                params={"filter": "doi:" + "|".join(batch), "select": "doi,cited_by_count", "per-page": 50},
+                params={"filter": "doi:" + "|".join(batch), "select": "doi,cited_by_count,ids,authorships", "per-page": 50},
             ).json()["results"]
         except (requests.RequestException, ValueError, KeyError):
             return {}
         for work in results:
             if work.get("doi"):
-                counts[clean_doi(work["doi"])] = work["cited_by_count"]
+                pmcid = (work.get("ids") or {}).get("pmcid")
+                corresponding = [author_key(a["author"]["display_name"], a["author"]["display_name"])
+                                 for a in work.get("authorships", []) if a.get("is_corresponding")]
+                counts[clean_doi(work["doi"])] = (work["cited_by_count"], pmcid.rstrip("/").split("/")[-1] if pmcid else None,
+                                                  corresponding)
     return counts
 
 
@@ -233,13 +378,14 @@ def collect_publications(works, data, refresh=False):
     publications, unresolved, resolved = [], [], 0
     for index, work in enumerate(works):
         entry = data.get(work["doi"]) if work["doi"] else None
-        if entry is None or (refresh and not entry.get("pinned")):
+        if entry is None or ((refresh or entry.get("preprint")) and not entry.get("pinned")):
             fresh = resolve_work(work)
             if fresh:
                 if entry and entry.get("pinned"):
                     fresh["pinned"] = True
-                if entry and "citations" in entry:
-                    fresh["citations"] = entry["citations"]
+                for key in ("citations", "pmcid", "corresponding"):
+                    if entry and key in entry:
+                        fresh[key] = entry[key]
                 data[fresh["doi"]] = entry = fresh
                 resolved += 1
         if entry is None:
@@ -255,10 +401,15 @@ def collect_publications(works, data, refresh=False):
         and (set(pub["entry"].get("published_as", [])) & article_dois or normalize_title(title_of(pub)) in article_titles)
     )]
 
-    counts = fetch_citation_counts([pub["entry"]["doi"] for pub in publications if pub["entry"]])
+    counts = fetch_openalex([pub["entry"]["doi"] for pub in publications if pub["entry"]])
     for pub in publications:
         if pub["entry"] and pub["entry"]["doi"] in counts:
-            pub["entry"]["citations"] = counts[pub["entry"]["doi"]]
+            pub["entry"]["citations"], pmcid, corresponding = counts[pub["entry"]["doi"]]
+            if pmcid:
+                pub["entry"]["pmcid"] = pmcid
+            # Only replaced when OpenAlex knows them, so a list added by hand is kept.
+            if corresponding:
+                pub["entry"]["corresponding"] = corresponding
 
     publications.sort(key=lambda pub: (-(year_of(pub) or 0), pub["index"]))
     return publications, unresolved, resolved, bool(counts)
@@ -292,8 +443,9 @@ def find_abstract_image(doi):
     return None
 
 
-def format_author_list(authors):
-    """Format authors as "S. S. Chaturvedi, P. Ajmera, ..." with the site owner in bold."""
+def format_author_list(authors, corresponding=()):
+    """Format authors as "S. S. Chaturvedi, P. Ajmera, ..." with the site owner underlined
+    and corresponding authors (author_key()s, e.g. "a alexandrova") starred."""
     own_initial, own_family = AUTHOR_NAME.split()
     names = []
     for given, family in authors:
@@ -301,6 +453,8 @@ def format_author_list(authors):
         name = html.escape(f"{initials} {family}".strip())
         if family.lower() == own_family.lower() and given[:1].upper() == own_initial:
             name = f'<span class="author-name">{name}</span>'
+        if author_key(given, family) in corresponding:
+            name += '<span class="corresponding" title="Corresponding author">*</span>'
         names.append(name)
     return ", ".join(names)
 
@@ -321,9 +475,9 @@ def format_venue(entry):
 def render_pub_item(pub):
     work, entry = pub["work"], pub["entry"]
     if entry:
-        doi = entry["doi"]
+        doi = entry.get("link_doi") or entry["doi"]
         title_html = entry["title"]
-        authors_html = format_author_list(entry["authors"])
+        authors_html = format_author_list(entry["authors"], entry.get("corresponding", []))
         venue_html = format_venue(entry)
         bibtex = entry.get("bibtex")
         citations = entry.get("citations")
@@ -336,7 +490,7 @@ def render_pub_item(pub):
                                             f"({work['year']})" if work["year"] else ""]))
 
     citation_html = ""
-    if citations is not None:
+    if citations:  # nothing shown for 0 or unknown
         citation_label = "citation" if citations == 1 else "citations"
         citation_html = f'<span class="citation-count" aria-label="{citations} {citation_label}">Cited by {citations}</span>'
 
@@ -349,14 +503,13 @@ def render_pub_item(pub):
         actions.append('<button class="paper-action" type="button" data-cite aria-expanded="false">Cite</button>')
         bibtex_html = f'<pre class="paper-bibtex" hidden>{html.escape(bibtex)}</pre>'
 
-    figure_src = find_abstract_image(doi)
+    figure_src = find_abstract_image(entry["doi"] if entry else work["doi"])
     figure_html = ""
     if figure_src:
         figure_html = f'<a class="paper-figure" href="{paper_href}" {external}><img src="{html.escape(figure_src)}" alt="Graphical abstract" loading="lazy" /></a>'
 
     return (
         f'<li class="paper-card{" has-figure" if figure_html else ""}">'
-        f'{figure_html}'
         f'  <div class="paper-info">'
         f'    <div class="paper-title">{title_link}</div>'
         f'    <div class="paper-authors">{authors_html}</div>'
@@ -364,6 +517,7 @@ def render_pub_item(pub):
         f'    <div class="paper-actions">{"".join(actions)}</div>'
         f'    {bibtex_html}'
         f'  </div>'
+        f'{figure_html}'
         f'</li>'
     )
 
@@ -423,7 +577,7 @@ def render_html(sections_html):
     <h1>Publications</h1>
   </header>
   {sections_html}
-  <p class=\"page-note\">Citation counts from <a href=\"https://openalex.org\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAlex</a>.</p>
+  <p class=\"page-note\">* Corresponding author. Citation counts from <a href=\"https://openalex.org\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAlex</a>.</p>
 </body>
 </html>"""
 
@@ -439,11 +593,13 @@ def main():
     data = load_data()
     publications, unresolved, resolved, counts_updated = collect_publications(works, data, refresh=args.refresh)
     save_data(data)
+    figures = fetch_missing_graphical_abstracts(publications)
 
     out_path = Path(args.output)
     out_path.write_text(render_html(build_publications_sections(publications)), encoding="utf-8")
     print(f"Updated {out_path} with {len(publications)} publications "
-          f"({resolved} looked up on Crossref; citation counts {'updated' if counts_updated else 'unchanged, OpenAlex unavailable'}).")
+          f"({resolved} looked up on Crossref; citation counts {'updated' if counts_updated else 'unchanged, OpenAlex unavailable'}; "
+          f"{figures} TOC figures downloaded).")
     if unresolved:
         print("Not found on Crossref yet (shown as ORCID lists them; add a DOI to the work on ORCID if it has none):")
         for title in unresolved:
