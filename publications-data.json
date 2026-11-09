@@ -416,11 +416,11 @@
     "preprint": true,
     "published_as": [],
     "bibtex": "@article{Ajmera_2026, title={Designing an Artificial Metalloenzyme for Re(I)-catalyzed CO2 Photoreduction}, url={http://dx.doi.org/10.26434/chemrxiv-2025-mhw1f/v2}, DOI={10.26434/chemrxiv-2025-mhw1f/v2}, publisher={American Chemical Society (ACS)}, author={Ajmera, Pujan and Farley, Liam and Minnetian, Natalie and King, Ryan and Jayasekara, Hiran and Chaturvedi, Shobhit and Yang, Jenny and Alexandrova, Anastassia and Rovis, Tomislav}, year={2026}, month=Feb }",
-    "citations": 0
+    "citations": 1
   },
   "10.26434/chemrxiv.15011426": {
     "doi": "10.26434/chemrxiv.15011426",
-    "link_doi": "10.26434/chemrxiv.15011426/v1",
+    "link_doi": "10.26434/chemrxiv.15011426/v2",
     "title": "Polarization Is Required to Model Electrostatic Preorganization: The Case of Chorismate Mutase",
     "authors": [
       [
@@ -430,6 +430,10 @@
       [
         "Pujan",
         "Ajmera"
+      ],
+      [
+        "Jiayi",
+        "Qian"
       ],
       [
         "Anastassia",
@@ -442,6 +446,6 @@
     "year": 2026,
     "preprint": true,
     "published_as": [],
-    "bibtex": "@article{Berti_2026, title={Polarization Is Required to Model Electrostatic Preorganization: The Case of Chorismate Mutase}, url={http://dx.doi.org/10.26434/chemrxiv.15011426/v1}, DOI={10.26434/chemrxiv.15011426/v1}, publisher={American Chemical Society (ACS)}, author={Berti, Giacomo and Ajmera, Pujan and Alexandrova, Anastassia}, year={2026}, month=Nov }"
+    "bibtex": "@article{Berti_2026, title={Polarization Is Required to Model Electrostatic Preorganization: The Case of Chorismate Mutase}, url={http://dx.doi.org/10.26434/chemrxiv.15011426/v2}, DOI={10.26434/chemrxiv.15011426/v2}, publisher={American Chemical Society (ACS)}, author={Berti, Giacomo and Ajmera, Pujan and Qian, Jiayi and Alexandrova, Anastassia}, year={2026}, month=Nov }"
   }
 }
