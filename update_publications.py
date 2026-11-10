@@ -108,15 +108,21 @@ def normalize_title(title):
 # ---------- ORCID: the list of works ----------
 
 def fetch_orcid_works(orcid):
-    """Works on the ORCID record as dicts, newest first, in the types the page shows."""
+    """Works on the ORCID record as dicts, newest first, in the types the page shows.
+    Versions of one preprint ("…/v1", "…/v2") can be separate ORCID works; they share a
+    DOI once the version is dropped, so only the first (newest) is kept."""
     groups = get(f"https://pub.orcid.org/v3.0/{orcid}/works", headers={"Accept": "application/json"}).json()["group"]
-    works = []
+    works, seen = [], set()
     for group in groups:
         summary = group["work-summary"][0]
         if summary["type"] not in INCLUDED_TYPES:
             continue
         ids = {e["external-id-type"]: e["external-id-value"] for e in group["external-ids"]["external-id"]}
         year = ((summary.get("publication-date") or {}).get("year") or {}).get("value")
+        key = clean_doi(ids["doi"]) if ids.get("doi") else normalize_title(summary["title"]["title"]["value"])
+        if key in seen:
+            continue
+        seen.add(key)
         works.append({
             "doi": clean_doi(ids["doi"]) if ids.get("doi") else None,
             "doi_raw": ids["doi"].strip().lower() if ids.get("doi") else None,
