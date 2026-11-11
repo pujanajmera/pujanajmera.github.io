@@ -27,7 +27,7 @@
     "preprint": false,
     "bibtex": "@article{Chauvier_2021, title={Dynamic competition between a ligand and transcription factor NusA governs riboswitch-mediated transcription regulation}, volume={118}, ISSN={1091-6490}, url={http://dx.doi.org/10.1073/pnas.2109026118}, DOI={10.1073/pnas.2109026118}, number={47}, journal={Proceedings of the National Academy of Sciences}, publisher={National Academy of Sciences}, author={Chauvier, Adrien and Ajmera, Pujan and Yadav, Rajeev and Walter, Nils G.}, year={2021}, month=Nov }",
     "published_as": [],
-    "citations": 38,
+    "citations": 39,
     "pmcid": "8617461",
     "corresponding": [
       "n walter"
@@ -148,7 +148,7 @@
     "preprint": false,
     "bibtex": "@article{Fuller_2023, title={Coenzyme Q10 trapping in mitochondrial complex I underlies Leber’s hereditary optic neuropathy}, volume={120}, ISSN={1091-6490}, url={http://dx.doi.org/10.1073/pnas.2304884120}, DOI={10.1073/pnas.2304884120}, number={39}, journal={Proceedings of the National Academy of Sciences}, publisher={National Academy of Sciences}, author={Fuller, Jack T. and Barnes, Steven and Sadun, Lorenzo A. and Ajmera, Pujan and Alexandrova, Anastassia N. and Sadun, Alfredo A.}, year={2023}, month=Sept }",
     "published_as": [],
-    "citations": 22,
+    "citations": 23,
     "pmcid": "10523484",
     "corresponding": [
       "a alexandrova",
