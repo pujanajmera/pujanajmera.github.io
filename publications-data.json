@@ -148,7 +148,7 @@
     "preprint": false,
     "bibtex": "@article{Fuller_2023, title={Coenzyme Q10 trapping in mitochondrial complex I underlies Leber’s hereditary optic neuropathy}, volume={120}, ISSN={1091-6490}, url={http://dx.doi.org/10.1073/pnas.2304884120}, DOI={10.1073/pnas.2304884120}, number={39}, journal={Proceedings of the National Academy of Sciences}, publisher={National Academy of Sciences}, author={Fuller, Jack T. and Barnes, Steven and Sadun, Lorenzo A. and Ajmera, Pujan and Alexandrova, Anastassia N. and Sadun, Alfredo A.}, year={2023}, month=Sept }",
     "published_as": [],
-    "citations": 23,
+    "citations": 24,
     "pmcid": "10523484",
     "corresponding": [
       "a alexandrova",
@@ -191,7 +191,7 @@
     "preprint": false,
     "bibtex": "@article{Chaturvedi_2025, title={Distinct Electric Fields Enable Common Catalytic Function in Structurally Diverse Enzymes}, volume={147}, ISSN={1520-5126}, url={http://dx.doi.org/10.1021/jacs.5c11931}, DOI={10.1021/jacs.5c11931}, number={35}, journal={Journal of the American Chemical Society}, publisher={American Chemical Society (ACS)}, author={Chaturvedi, Shobhit S. and Goswami, Anubhav and Qian, Jiayi and Petersen, Ashley and Ajmera, Pujan and Alexandrova, Anastassia N.}, year={2025}, month=Aug, pages={32225–32237} }",
     "published_as": [],
-    "citations": 15,
+    "citations": 16,
     "corresponding": [
       "a alexandrova"
     ]
