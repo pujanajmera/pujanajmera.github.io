@@ -148,7 +148,7 @@
     "preprint": false,
     "bibtex": "@article{Fuller_2023, title={Coenzyme Q10 trapping in mitochondrial complex I underlies Leber’s hereditary optic neuropathy}, volume={120}, ISSN={1091-6490}, url={http://dx.doi.org/10.1073/pnas.2304884120}, DOI={10.1073/pnas.2304884120}, number={39}, journal={Proceedings of the National Academy of Sciences}, publisher={National Academy of Sciences}, author={Fuller, Jack T. and Barnes, Steven and Sadun, Lorenzo A. and Ajmera, Pujan and Alexandrova, Anastassia N. and Sadun, Alfredo A.}, year={2023}, month=Sept }",
     "published_as": [],
-    "citations": 26,
+    "citations": 27,
     "pmcid": "10523484",
     "corresponding": [
       "a alexandrova",
@@ -361,7 +361,7 @@
     "preprint": true,
     "published_as": [],
     "bibtex": "@article{Ajmera_2026, title={Molecular Basis of Mitochondrial Complex I Disruption by m.14484T&gt;C-Induced Leber Hereditary Optic Neuropathy}, url={http://dx.doi.org/10.64898/2026.01.28.701874}, DOI={10.64898/2026.01.28.701874}, publisher={openRxiv}, author={Ajmera, Pujan and Guion, Daniel and Barnes, Steven and Sadun, Alfredo A. and Alexandrova, Anastassia N.}, year={2026}, month=Jan }",
-    "citations": 2,
+    "citations": 3,
     "pmcid": "12873783",
     "corresponding": [
       "a alexandrova"
